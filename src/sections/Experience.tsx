@@ -45,7 +45,7 @@ export default function Experience() {
                     type="button"
                     onClick={() => setOpenIdx(open ? null : idx)}
                     data-cursor="hover"
-                    className="group flex w-full flex-col gap-3 text-left md:flex-row md:items-baseline md:justify-between"
+                    className="hover-rise group flex w-full flex-col gap-3 rounded-xl border border-transparent px-4 py-3 text-left md:flex-row md:items-baseline md:justify-between"
                   >
                     <div>
                       <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">

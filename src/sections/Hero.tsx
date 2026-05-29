@@ -2,6 +2,7 @@ import { m } from 'motion/react';
 import { ArrowDownRight, Github, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import Typewriter from '@/components/Typewriter';
 import EC2InstanceCard from '@/components/EC2InstanceCard';
 import { profile } from '@/data/resume';
@@ -52,22 +53,17 @@ export default function Hero() {
           </span>
         </m.h1>
 
-        <div className="grid gap-12 md:grid-cols-12">
-          <m.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.9 }}
-            className="md:col-span-6 md:col-start-1 text-pretty text-base text-muted-foreground md:text-lg"
-          >
-            {profile.summary}
-          </m.p>
+        <m.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-2 grid gap-10 md:grid-cols-12"
+        >
+          <div className="md:col-span-5 flex flex-col gap-6 self-stretch">
+            <p className="text-pretty text-base text-muted-foreground md:text-lg">
+              {profile.summary}
+            </p>
 
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 1.05 }}
-            className="md:col-span-5 md:col-start-8 flex flex-col gap-6"
-          >
             <div className="flex flex-wrap gap-2">
               {tags.map((t) => (
                 <Badge key={t} variant="outline">
@@ -77,38 +73,83 @@ export default function Hero() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button asChild>
-                <a href="#projects" data-cursor="hover">
-                  See selected work
-                  <ArrowDownRight className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="icon">
-                <a href={profile.links.github} target="_blank" rel="noreferrer" aria-label="GitHub">
-                  <Github className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="icon">
-                <a href={profile.links.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
-                  <Linkedin className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="icon">
-                <a href={`mailto:${profile.email}`} aria-label="Email">
-                  <Mail className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </m.div>
-        </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild>
+                    <a
+                      href="#projects"
+                      data-cursor="hover"
+                      aria-label="See selected work — jump to five recent production systems"
+                    >
+                      See selected work
+                      <ArrowDownRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                  <span className="text-primary">▸</span>{' '}
+                  <span className="text-foreground/90">jump to five recent production systems</span>
+                </TooltipContent>
+              </Tooltip>
 
-        <m.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.25, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-4 grid gap-6 md:grid-cols-12"
-        >
-          <div className="md:col-span-7 lg:col-span-6">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild variant="outline" size="icon">
+                    <a
+                      href={profile.links.github}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="GitHub — source for this site and code samples"
+                    >
+                      <Github className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                  <span className="text-primary">▸</span>{' '}
+                  <span className="text-foreground/90">github · source for this site and samples</span>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild variant="outline" size="icon">
+                    <a
+                      href={profile.links.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="LinkedIn — recent work and endorsements"
+                    >
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                  <span className="text-primary">▸</span>{' '}
+                  <span className="text-foreground/90">linkedin · recent work + endorsements</span>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild variant="outline" size="icon">
+                    <a
+                      href={`mailto:${profile.email}`}
+                      aria-label={`Email ${profile.email} — opens your mail client`}
+                    >
+                      <Mail className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                  <span className="text-primary">▸</span>{' '}
+                  <span className="text-foreground/90">mail · {profile.email}</span>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="md:col-span-7">
             <EC2InstanceCard />
           </div>
         </m.div>

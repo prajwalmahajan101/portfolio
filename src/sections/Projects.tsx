@@ -4,6 +4,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { projects, type Project } from '@/data/resume';
 
 const accentMap: Record<Project['accent'], string> = {
@@ -67,10 +68,9 @@ function ProjectCard({ project, idx, accent }: { project: Project; idx: number; 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <m.button
-            whileHover={{ y: -4 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             data-cursor="hover"
-            className="group relative flex h-full w-full flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card/80 p-8 text-left backdrop-blur-sm transition-colors hover:border-primary/40 md:p-10"
+            className="hover-rise group relative flex h-full w-full flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card/80 p-8 text-left backdrop-blur-sm hover:border-primary/40 md:p-10"
           >
             <div
               aria-hidden
@@ -102,7 +102,7 @@ function ProjectCard({ project, idx, accent }: { project: Project; idx: number; 
           </m.button>
         </DialogTrigger>
 
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
               Project · {String(idx + 1).padStart(2, '0')} / {projects.length.toString().padStart(2, '0')}
@@ -119,28 +119,73 @@ function ProjectCard({ project, idx, accent }: { project: Project; idx: number; 
             ))}
           </div>
 
-          <div className="mt-6 grid gap-6 md:grid-cols-3">
-            <Section tag="Problem" body={project.problem} />
-            <Section tag="Approach" body={project.approach} />
-            <Section tag="Result" body={project.result} primary />
-          </div>
-
-          <details className="mt-6 rounded-lg border border-border/60 bg-background/40 p-4 backdrop-blur-sm">
-            <summary className="cursor-pointer select-none font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground">
-              show implementation details ↘
-            </summary>
-            <ul className="mt-4 space-y-3">
-              {project.bullets.map((b, i) => (
-                <li key={i} className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          </details>
+          <ProjectBody project={project} />
         </DialogContent>
       </Dialog>
     </Reveal>
+  );
+}
+
+type ProjectView = 'overview' | 'implementation';
+
+function ProjectBody({ project }: { project: Project }) {
+  const [view, setView] = useState<ProjectView>('overview');
+
+  return (
+    <div className="mt-6">
+      <div role="tablist" className="mb-6 inline-flex items-center gap-1 rounded-full border border-border bg-background/40 p-1 backdrop-blur-sm">
+        <TabButton active={view === 'overview'} onClick={() => setView('overview')}>
+          ▸ overview
+        </TabButton>
+        <TabButton active={view === 'implementation'} onClick={() => setView('implementation')}>
+          ▸ implementation
+        </TabButton>
+      </div>
+
+      {view === 'overview' ? (
+        <div className="space-y-8">
+          <Section tag="Problem" body={project.problem} />
+          <Section tag="Approach" body={project.approach} />
+          <Section tag="Result" body={project.result} primary />
+        </div>
+      ) : (
+        <div>
+          <div className="mb-5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="text-primary">▸</span> Implementation details
+          </div>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {project.bullets.map((b, i) => (
+              <li
+                key={i}
+                className="flex gap-3 rounded-xl border border-border/60 bg-background/40 p-4 text-[13px] leading-relaxed text-muted-foreground backdrop-blur-sm"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      data-cursor="hover"
+      className={cn(
+        'rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] transition-colors',
+        active
+          ? 'bg-primary/15 text-primary'
+          : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -150,7 +195,7 @@ function Section({ tag, body, primary }: { tag: string; body: string; primary?: 
       <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         <span className={primary ? 'text-primary' : 'text-foreground/60'}>▸</span> {tag}
       </div>
-      <p className="mt-2 text-pretty text-[13px] leading-relaxed text-foreground/90">{body}</p>
+      <p className="mt-3 text-pretty text-[14px] leading-relaxed text-foreground/90 md:text-[15px]">{body}</p>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { Reveal, Stagger } from '@/components/Reveal';
 import { m } from 'motion/react';
 import CountUp from '@/components/CountUp';
 import MessageQueue from '@/components/MessageQueue';
-import { stats, profile } from '@/data/resume';
+import { stats, profile, about } from '@/data/resume';
 
 export default function About() {
   return (
@@ -23,6 +23,14 @@ export default function About() {
             <p className="mt-8 text-pretty text-base text-muted-foreground md:text-lg">
               {profile.summary}
             </p>
+            {about.paragraphs.map((para, i) => (
+              <p
+                key={i}
+                className="mt-6 text-pretty text-base text-muted-foreground md:text-lg"
+              >
+                {para}
+              </p>
+            ))}
           </Reveal>
 
           <Reveal delay={0.15} className="md:col-span-5">
@@ -32,8 +40,8 @@ export default function About() {
 
         <Stagger className="mt-24 grid gap-px overflow-hidden rounded-2xl border border-border/60 bg-border md:grid-cols-2 lg:grid-cols-4">
           {stats.map((s) => {
-            const parsedPrimary = parseFloat(s.primary);
-            const isInt = Number.isInteger(parsedPrimary) && !s.primary.includes('.');
+            const isInt = /^\d+$/.test(s.primary.trim());
+            const parsedPrimary = isInt ? parseInt(s.primary, 10) : NaN;
             return (
               <m.div
                 key={s.caption}
@@ -41,7 +49,7 @@ export default function About() {
                   hidden: { opacity: 0, y: 24 },
                   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
                 }}
-                className="group relative flex min-h-[220px] flex-col justify-between gap-4 overflow-hidden bg-card p-7 transition-colors hover:bg-card/70"
+                className="hover-rise group relative flex min-h-[220px] flex-col justify-between gap-4 overflow-hidden border border-transparent bg-card p-7 hover:bg-card/70"
               >
                 <span
                   aria-hidden

@@ -3,6 +3,7 @@ import { m, AnimatePresence } from 'motion/react';
 import { Check, Copy, Github, Linkedin, Mail } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { profile, education } from '@/data/resume';
 
 export default function Contact() {
@@ -31,7 +32,7 @@ export default function Contact() {
 
         <div className="grid gap-12 md:grid-cols-12">
           <Reveal className="md:col-span-7">
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 md:p-12">
+            <div className="hover-rise relative overflow-hidden rounded-2xl border border-border bg-card p-8 md:p-12">
               <div
                 aria-hidden
                 className="pointer-events-none absolute -right-1/3 -top-1/3 h-[500px] w-[500px] rounded-full opacity-30 blur-3xl"
@@ -41,15 +42,24 @@ export default function Contact() {
                 Primary channel
               </span>
               <div className="mt-4 flex flex-wrap items-center gap-4">
-                <a
-                  href={`mailto:${profile.email}`}
-                  data-cursor="hover"
-                  className="group font-display text-2xl tracking-tight md:text-4xl"
-                >
-                  {profile.email}
-                  <span className="block h-[1px] w-0 bg-primary transition-all duration-500 group-hover:w-full" />
-                </a>
-                <Button onClick={copy} variant="outline" size="sm" aria-label="Copy email">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={`mailto:${profile.email}`}
+                      data-cursor="hover"
+                      aria-label={`Email ${profile.email} — opens your mail client with a fresh draft`}
+                      className="group font-display text-2xl tracking-tight md:text-4xl"
+                    >
+                      {profile.email}
+                      <span className="block h-[1px] w-0 bg-primary transition-all duration-500 group-hover:w-full" />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                    <span className="text-primary">▸</span>{' '}
+                    <span className="text-foreground/90">opens your mail client with a fresh draft</span>
+                  </TooltipContent>
+                </Tooltip>
+                <Button onClick={copy} variant="outline" size="sm" aria-label="Copy email to clipboard">
                   <AnimatePresence mode="wait">
                     {copied ? (
                       <m.span
@@ -77,27 +87,69 @@ export default function Contact() {
               </div>
 
               <div className="mt-10 flex flex-wrap items-center gap-3">
-                <Button asChild>
-                  <a href={`mailto:${profile.email}`} data-cursor="hover">
-                    <Mail className="h-4 w-4" /> Send email
-                  </a>
-                </Button>
-                <Button asChild variant="outline">
-                  <a href={profile.links.linkedin} target="_blank" rel="noreferrer" data-cursor="hover">
-                    <Linkedin className="h-4 w-4" /> LinkedIn
-                  </a>
-                </Button>
-                <Button asChild variant="outline">
-                  <a href={profile.links.github} target="_blank" rel="noreferrer" data-cursor="hover">
-                    <Github className="h-4 w-4" /> GitHub
-                  </a>
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button asChild>
+                      <a
+                        href={`mailto:${profile.email}`}
+                        data-cursor="hover"
+                        aria-label="Send email — opens a draft to prajwal directly"
+                      >
+                        <Mail className="h-4 w-4" /> Send email
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                    <span className="text-primary">▸</span>{' '}
+                    <span className="text-foreground/90">opens a draft to prajwal directly</span>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button asChild variant="outline">
+                      <a
+                        href={profile.links.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-cursor="hover"
+                        aria-label="LinkedIn — recent work, endorsements, and timeline"
+                      >
+                        <Linkedin className="h-4 w-4" /> LinkedIn
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                    <span className="text-primary">▸</span>{' '}
+                    <span className="text-foreground/90">recent work, endorsements, and timeline</span>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button asChild variant="outline">
+                      <a
+                        href={profile.links.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-cursor="hover"
+                        aria-label="GitHub — source for this portfolio site and code samples"
+                      >
+                        <Github className="h-4 w-4" /> GitHub
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="border-primary/40 bg-background/95 normal-case tracking-[0.06em]">
+                    <span className="text-primary">▸</span>{' '}
+                    <span className="text-foreground/90">source for this portfolio site and code samples</span>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </Reveal>
 
           <Reveal delay={0.15} className="md:col-span-5">
-            <div className="flex h-full flex-col justify-between gap-8 rounded-2xl border border-border/60 p-8 md:p-10">
+            <div className="hover-rise flex h-full flex-col justify-between gap-8 rounded-2xl border border-border/60 p-8 md:p-10">
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Education</span>
                 <h3 className="mt-3 font-display text-xl tracking-tight">{education.school}</h3>
