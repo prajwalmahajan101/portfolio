@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { LazyMotion, domAnimation } from 'motion/react';
 import { ThemeProvider } from './components/theme-provider';
 import { TooltipProvider } from './components/ui/tooltip';
@@ -10,14 +10,13 @@ import Marquee from './components/Marquee';
 import TerminalBackground from './components/TerminalBackground';
 import Hero from './sections/Hero';
 import About from './sections/About';
+import Architecture from './sections/Architecture';
 import Skills from './sections/Skills';
 import Experience from './sections/Experience';
 import Projects from './sections/Projects';
 import Contact from './sections/Contact';
 
-// R3F canvas seam — disabled for the Phosphor Terminal theme. Re-enable
-// for project-scoped scenes later via `lazy(() => import('./three/Canvas'))`.
-// const GlobalCanvas = lazy(() => import('./three/Canvas'));
+const GlobalCanvas = lazy(() => import('./three/Canvas'));
 
 const marqueeItems = [
   'Distributed Systems',
@@ -53,6 +52,14 @@ export default function App() {
           {/* Phosphor terminal — fixed background, all CSS, no R3F */}
           <TerminalBackground />
 
+          {/* R3F scene overlay — sits above terminal background, below content veil.
+              Dimmed so it reads as backdrop, not foreground. */}
+          <div className="pointer-events-none fixed inset-0 z-[2] opacity-70 mix-blend-normal" aria-hidden>
+            <Suspense fallback={null}>
+              <GlobalCanvas />
+            </Suspense>
+          </div>
+
           <Nav />
 
           <main ref={scrollContainerRef} data-scroll-container className="relative z-10">
@@ -63,6 +70,7 @@ export default function App() {
             </div>
 
             <About />
+            <Architecture />
             <Skills />
             <Experience />
             <Projects />
