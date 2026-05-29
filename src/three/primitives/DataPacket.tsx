@@ -2,14 +2,9 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CatmullRomCurve3, type Mesh, MathUtils, Vector3 } from 'three';
 import { useMemo } from 'react';
+import { useThreeColors } from '@/lib/themeColors';
 
 export type PacketKind = 'sync' | 'async' | 'event';
-
-const KIND_COLOR: Record<PacketKind, string> = {
-  sync:  'hsl(38, 95%, 70%)',
-  async: 'hsl(95, 50%, 65%)',
-  event: 'hsl(18, 90%, 65%)',
-};
 
 interface Props {
   /** ordered control points the packet travels through, looping back to start */
@@ -30,6 +25,7 @@ export default function DataPacket({
   size = 0.085,
 }: Props) {
   const ref = useRef<Mesh>(null);
+  const colors = useThreeColors();
 
   const curve = useMemo(() => {
     const pts = path.map(([x, y, z]) => new Vector3(x, y, z));
@@ -48,7 +44,7 @@ export default function DataPacket({
   return (
     <mesh ref={ref}>
       <boxGeometry args={[size, size, size]} />
-      <meshBasicMaterial color={KIND_COLOR[kind]} />
+      <meshBasicMaterial color={colors[kind]} />
     </mesh>
   );
 }
