@@ -72,36 +72,46 @@ export default function TerminalBackground() {
   const colB = useMemo(() => buildLines(28, 4200), []);
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 select-none">
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-0 select-none opacity-100 [.light_&]:opacity-100"
+    >
       {/* Base wash */}
       <div className="absolute inset-0 bg-background" />
 
       {/* Top phosphor warmth */}
       <div
-        className="absolute inset-x-0 top-0 h-[40vh] opacity-60"
+        className="absolute inset-x-0 top-0 h-[40vh] opacity-60 [.light_&]:opacity-60"
         style={{
           background:
             'linear-gradient(to bottom, hsl(var(--phosphor) / 0.06), transparent 80%)',
         }}
       />
 
-      {/* Log columns */}
+      {/* Log columns — extra opacity dial-down on light so the cream paper stays the focus */}
       <div className="absolute inset-0 grid grid-cols-1 gap-12 px-6 py-16 md:grid-cols-2 md:gap-24 md:px-12 md:py-24">
-        <div className="phosphor-glow opacity-[0.55] md:opacity-[0.45]">
-          <Column lines={colA} duration={90} showCursor />
+        <div className="phosphor-glow opacity-[0.55] md:opacity-[0.45] [.light_&]:opacity-[0.7] [.light_&]:md:opacity-[0.65]">
+          <Column lines={colA} duration={45} showCursor />
         </div>
-        <div className="phosphor-glow hidden opacity-[0.35] md:block">
-          <Column lines={colB} duration={120} delay={-30} />
+        <div className="phosphor-glow hidden opacity-[0.35] md:block [.light_&]:opacity-[0.5]">
+          <Column lines={colB} duration={60} delay={-15} />
         </div>
       </div>
 
-      {/* Scanlines */}
-      <div className="absolute inset-0 mix-blend-overlay opacity-[0.18] [background:repeating-linear-gradient(to_bottom,transparent_0,transparent_2px,hsl(var(--phosphor)/0.5)_2px,hsl(var(--phosphor)/0.5)_3px)]" />
+      {/* Scanlines — drive opacity + color through theme tokens. */}
+      <div
+        className="absolute inset-0 mix-blend-overlay [.light_&]:mix-blend-multiply"
+        style={{
+          opacity: 'var(--scanline-opacity)',
+          background:
+            'repeating-linear-gradient(to bottom, transparent 0, transparent 2px, hsl(var(--scanline-color)) 2px, hsl(var(--scanline-color)) 3px)',
+        }}
+      />
 
-      {/* Flicker — very subtle, runs at 6Hz */}
-      <div className="absolute inset-0 animate-[terminal-flicker_4.2s_infinite] bg-[hsl(var(--phosphor)/0.025)]" />
+      {/* Flicker — very subtle, runs at 6Hz; calmer on light */}
+      <div className="absolute inset-0 animate-[terminal-flicker_4.2s_infinite] bg-[hsl(var(--phosphor)/0.025)] [.light_&]:bg-[hsl(var(--phosphor)/0.025)]" />
 
-      {/* Bottom fade so log feels like it's coming up out of darkness */}
+      {/* Bottom fade so log feels like it's coming up out of background */}
       <div
         className="absolute inset-x-0 bottom-0 h-[35vh]"
         style={{

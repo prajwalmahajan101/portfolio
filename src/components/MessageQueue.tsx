@@ -12,26 +12,47 @@ interface QueueMsg {
 
 const TOPICS = [
   'co-lending.outbound',
-  'fleet.amr.state',
+  'partner-push.bhn',
   'gateway.audit',
+  'gateway.lead.created',
+  'valkey.cache',
+  'lambda.triage',
+  'email.classifier',
+  'synoriq.read',
+  'synofin.docs',
   'rag.embedding.upsert',
   'webhook.signed',
   'scheduler.cron',
   'aa.consent.granted',
+  'fleet.amr.state',
+  'optiview.dashboard.exec',
+  'hr.employee.sync',
+  'valuation.evaluate',
+  'mqtt.broker.heartbeat',
 ];
 
 const TYPES = [
   'ApplicationSubmitted',
+  'LeadCreated',
   'PartnerPushQueued',
+  'PushedToPartner',
+  'DocumentUploaded',
+  'EmailClassified',
+  'DurableIdCommitted',
+  'RateLimitTripped',
   'AmrZoneChanged',
   'ClauseExtracted',
   'WebhookSent',
   'TrialExpired',
-  'ConsentRenewed',
+  'ConsentTokenRefreshed',
   'CircuitTrippedOpen',
+  'RetryScheduled',
+  'EmployeeSynced',
+  'CardExecuted',
+  'AuditTrailWritten',
 ];
 
-const STATUSES: QueueMsg['status'][] = ['ack', 'ack', 'ack', 'pending', 'ack', 'retry'];
+const STATUSES: QueueMsg['status'][] = ['ack', 'ack', 'ack', 'ack', 'pending', 'ack', 'ack', 'retry'];
 
 function pad(n: number, w = 2) {
   return n.toString().padStart(w, '0');
@@ -72,7 +93,7 @@ interface Props {
   interval?: number;
 }
 
-export default function MessageQueue({ className, rows = 7, interval = 1800 }: Props) {
+export default function MessageQueue({ className, rows = 16, interval = 700 }: Props) {
   const reduced = useReducedMotion();
   const [msgs, setMsgs] = useState<QueueMsg[]>(() => Array.from({ length: rows }, randomMsg));
 

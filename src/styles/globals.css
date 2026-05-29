@@ -51,6 +51,15 @@
     --phosphor-warn:   18 90% 60%;
     --phosphor-info:   95 50% 60%;
 
+    /* CRT scanline + embedded "screen" surface tokens. Both themes ship them so
+       components reference one variable and let the theme do the rest. */
+    --scanline-color:    38 95% 62% / 0.5;
+    --scanline-opacity:  0.18;
+    --glow-spread:       1;
+    --surface-display:        30 18% 7%;       /* the "monitor" backdrop behind 3D scenes */
+    --surface-display-text:   38 95% 62%;      /* phosphor text painted on the display */
+    --surface-display-border: 30 14% 20%;
+
     --radius: 0.75rem;
   }
 
@@ -61,23 +70,32 @@
     --card-foreground: 30 28% 10%;
     --popover: 38 24% 96%;
     --popover-foreground: 30 28% 10%;
-    --primary: 22 80% 36%;
+    --primary: 22 80% 32%;
     --primary-foreground: 38 30% 96%;
     --secondary: 30 14% 82%;
     --secondary-foreground: 30 28% 10%;
     --muted: 30 14% 84%;
     --muted-foreground: 30 12% 28%;
-    --accent: 14 80% 42%;
+    --accent: 14 80% 38%;
     --accent-foreground: 38 30% 96%;
     --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 30 18% 68%;
     --input: 30 18% 68%;
-    --ring: 22 80% 36%;
-    --phosphor:        22 80% 30%;
-    --phosphor-dim:    30 22% 38%;
-    --phosphor-warn:   14 80% 38%;
-    --phosphor-info:   95 40% 28%;
+    --ring: 22 80% 32%;
+    --phosphor:        22 75% 32%;
+    --phosphor-dim:    30 14% 42%;
+    --phosphor-warn:   14 75% 36%;
+    --phosphor-info:   120 35% 28%;
+
+    /* Light-terminal scanlines are much fainter so they don't clutter the
+       cream paper; glow is dialled way down (dark text doesn't glow). */
+    --scanline-color:    22 75% 32% / 0.16;
+    --scanline-opacity:  0.16;
+    --glow-spread:       0.25;
+    --surface-display:        38 22% 88%;       /* cream-2 panel for embedded scenes */
+    --surface-display-text:   22 75% 32%;
+    --surface-display-border: 30 18% 68%;
   }
 
   * { @apply border-border; }
@@ -115,18 +133,49 @@
       radial-gradient(ellipse 90% 70% at 50% 50%, hsl(var(--background) / 0.78) 0%, hsl(var(--background) / 0.55) 55%, hsl(var(--background) / 0.20) 100%);
   }
 
-  /* Phosphor glow used by the terminal log lines. */
+  /* Phosphor glow used by the terminal log lines.
+     Multiplied by --glow-spread so light mode (which sets it to 0.25) reads as
+     a subtle ink halo instead of a bright neon corona. */
   .phosphor-glow {
     text-shadow:
-      0 0 6px hsl(var(--phosphor) / 0.55),
-      0 0 18px hsl(var(--phosphor) / 0.22);
+      0 0 calc(6px * var(--glow-spread))  hsl(var(--phosphor) / calc(0.55 * var(--glow-spread))),
+      0 0 calc(18px * var(--glow-spread)) hsl(var(--phosphor) / calc(0.22 * var(--glow-spread)));
   }
   .phosphor-text {
     color: hsl(var(--phosphor));
     text-shadow:
-      0 0 8px hsl(var(--phosphor) / 0.5),
-      0 0 22px hsl(var(--phosphor) / 0.25);
+      0 0 calc(8px * var(--glow-spread))  hsl(var(--phosphor) / calc(0.5 * var(--glow-spread))),
+      0 0 calc(22px * var(--glow-spread)) hsl(var(--phosphor) / calc(0.25 * var(--glow-spread)));
   }
+}
+
+@layer components {
+  /* Universal section hover token — every interactive card uses this so the
+     hover vocabulary stays consistent: subtle lift, faint phosphor ring,
+     border brightens. Apply to <button>/<a>/<div role="*"> shells. */
+  .hover-rise {
+    @apply transition-[transform,box-shadow,border-color,background-color] duration-300 ease-out will-change-transform;
+  }
+  .hover-rise:hover {
+    transform: translateY(-4px) scale(1.015);
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow:
+      0 0 24px hsl(var(--phosphor) / 0.18),
+      inset 0 0 0 1px hsl(var(--phosphor) / 0.32);
+  }
+  .hover-rise:focus-visible {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.7);
+    box-shadow:
+      0 0 0 2px hsl(var(--phosphor) / 0.4),
+      0 0 24px hsl(var(--phosphor) / 0.18);
+  }
+}
+
+/* Block caret blink — reused by Cursor.tsx */
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 /* Terminal background keyframes */
