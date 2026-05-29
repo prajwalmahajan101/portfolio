@@ -1,0 +1,19 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import glsl from 'vite-plugin-glsl';
+import path from 'node:path';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    glsl({
+      include: ['**/*.glsl', '**/*.wgsl', '**/*.vert', '**/*.frag', '**/*.vs', '**/*.fs'],
+      warnDuplicatedImports: false,
+    }),
+  ],
+  resolve: {
+    alias: { '@': path.resolve(__dirname, './src') },
+  },
+  server: { port: 5173, host: true },
+  build: { target: 'esnext', sourcemap: true },
+});
