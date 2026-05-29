@@ -1,18 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Edges, Text } from '@react-three/drei';
 import { type Group, Color } from 'three';
-import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useThreeColors } from '@/lib/themeColors';
 
 export type RackKind = 'service' | 'datastore' | 'queue' | 'client' | 'external';
-
-const KIND_COLOR: Record<RackKind, string> = {
-  service:   'hsl(38, 95%, 62%)',  // phosphor amber
-  datastore: 'hsl(28, 80%, 55%)',  // warm ember
-  queue:     'hsl(18, 90%, 60%)',  // ember
-  client:    'hsl(95, 50%, 60%)',  // phosphor info
-  external:  'hsl(48, 85%, 65%)',  // light gold
-};
 
 interface Props {
   position?: [number, number, number];
@@ -24,10 +16,12 @@ interface Props {
   leds?: number;
   /** seed for staggered LED blink phases */
   seed?: number;
+  /** node id — retained for parent prop compatibility (no longer wired to hover) */
+  id?: string;
 }
 
 /**
- * EC2-style wireframe box. The recurring 3D atom across every scene.
+ * EC2-style wireframe box. Passive display — no hover interactions.
  */
 export default function ServiceRack({
   position = [0, 0, 0],
@@ -39,9 +33,10 @@ export default function ServiceRack({
   seed = 0,
 }: Props) {
   const ref = useRef<Group>(null);
-  const color = KIND_COLOR[kind];
+  const colors = useThreeColors();
+  const color = colors[kind];
 
-  // Tiny bob — like a server humming. No more than ±0.02 units.
+  // Idle bob — keeps the scene feeling alive without any pointer reactivity.
   useFrame((state) => {
     if (!ref.current) return;
     ref.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 1.2 + seed) * 0.015;
@@ -61,23 +56,22 @@ export default function ServiceRack({
       {/* Label band on the front face */}
       <Text
         position={[0, size[1] / 2 - 0.13, size[2] / 2 + 0.001]}
-        fontSize={0.085}
+        fontSize={0.105}
         color={color}
         anchorX="left"
         anchorY="middle"
-        // No font prop = drei's default; cheap + crisp.
       >
         {`▸ ${label}`}
       </Text>
 
       {subline && (
         <Text
-          position={[0, size[1] / 2 - 0.26, size[2] / 2 + 0.001]}
-          fontSize={0.055}
+          position={[0, size[1] / 2 - 0.28, size[2] / 2 + 0.001]}
+          fontSize={0.072}
           color={color}
           anchorX="left"
           anchorY="middle"
-          fillOpacity={0.6}
+          fillOpacity={0.7}
         >
           {subline}
         </Text>
@@ -93,11 +87,11 @@ export default function ServiceRack({
       {/* Kind tag on the right edge */}
       <Text
         position={[size[0] / 2 - 0.05, -size[1] / 2 + 0.1, size[2] / 2 + 0.001]}
-        fontSize={0.045}
+        fontSize={0.058}
         color={color}
         anchorX="right"
         anchorY="middle"
-        fillOpacity={0.4}
+        fillOpacity={0.5}
       >
         {kind.toUpperCase()}
       </Text>
@@ -105,7 +99,15 @@ export default function ServiceRack({
   );
 }
 
-function LED({ index, seed, color }: { index: number; seed: number; color: Color }) {
+function LED({
+  index,
+  seed,
+  color,
+}: {
+  index: number;
+  seed: number;
+  color: Color;
+}) {
   const ref = useRef<any>(null);
   useFrame((state) => {
     if (!ref.current) return;
