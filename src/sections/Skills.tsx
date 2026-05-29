@@ -4,11 +4,11 @@ import { skills } from '@/data/resume';
 
 export default function Skills() {
   return (
-    <section id="skills" className="section-veil relative px-6 py-32 md:px-10 md:py-40">
+    <section id="skills" data-scene="skills" className="section-veil relative px-6 py-32 md:px-10 md:py-40">
       <div className="mx-auto max-w-[1320px]">
         <Reveal className="mb-16 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           <span className="inline-block h-px w-10 bg-primary" />
-          02 — Constellation
+          03 — Service Registry
         </Reveal>
 
         <Reveal className="mb-20 max-w-3xl">

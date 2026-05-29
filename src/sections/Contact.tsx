@@ -14,11 +14,11 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="section-veil relative px-6 pb-24 pt-32 md:px-10 md:pb-32 md:pt-40">
+    <section id="contact" data-scene="contact" className="section-veil relative px-6 pb-24 pt-32 md:px-10 md:pb-32 md:pt-40">
       <div className="mx-auto max-w-[1320px]">
         <Reveal className="mb-12 flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
           <span className="inline-block h-px w-10 bg-primary" />
-          05 — Portal
+          06 — Portal
         </Reveal>
 
         <Reveal className="mb-20">

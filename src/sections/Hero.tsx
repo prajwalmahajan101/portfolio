@@ -3,13 +3,14 @@ import { ArrowDownRight, Github, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Typewriter from '@/components/Typewriter';
+import EC2InstanceCard from '@/components/EC2InstanceCard';
 import { profile } from '@/data/resume';
 
 const tags = ['Distributed Systems', 'Microservices', 'AI / LLM', 'Resilience'];
 
 export default function Hero() {
   return (
-    <section id="top" className="relative flex min-h-[100svh] items-end overflow-hidden px-6 pb-16 pt-32 md:px-10 md:pb-24">
+    <section id="top" data-scene="hero" className="relative flex min-h-[100svh] items-end overflow-hidden px-6 pb-16 pt-32 md:px-10 md:pb-24">
       <div className="pointer-events-none absolute inset-0 grain opacity-20" aria-hidden />
       {/* Soft amber halo bottom-left — anchors the headline against the live log */}
       <div
@@ -100,6 +101,17 @@ export default function Hero() {
             </div>
           </m.div>
         </div>
+
+        <m.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.25, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-4 grid gap-6 md:grid-cols-12"
+        >
+          <div className="md:col-span-7 lg:col-span-6">
+            <EC2InstanceCard />
+          </div>
+        </m.div>
 
         <m.div
           initial={{ opacity: 0 }}
