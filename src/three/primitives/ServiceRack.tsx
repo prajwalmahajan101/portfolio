@@ -16,8 +16,6 @@ interface Props {
   leds?: number;
   /** seed for staggered LED blink phases */
   seed?: number;
-  /** node id — retained for parent prop compatibility (no longer wired to hover) */
-  id?: string;
 }
 
 /**

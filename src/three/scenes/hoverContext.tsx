@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useState, type ReactNode } from 'react';
 
 interface Ctx {
   hoveredNodeId: string | null;
@@ -18,5 +18,3 @@ export function ArchitectureHoverProvider({ children }: { children: ReactNode })
     </ArchitectureHoverContext.Provider>
   );
 }
-
-export const useArchitectureHover = () => useContext(ArchitectureHoverContext);

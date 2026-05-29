@@ -19,9 +19,3 @@ export interface ScrollHandle {
 export async function initScroll(_container: HTMLElement | null = null): Promise<ScrollHandle> {
   return { destroy: () => {} };
 }
-
-export function initInitialScrollTrigger(container: HTMLElement | null) {
-  // Static fallback path: just refresh after layout.
-  if (!container) return;
-  requestAnimationFrame(() => ScrollTrigger.refresh());
-}

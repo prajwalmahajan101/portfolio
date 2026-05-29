@@ -20,10 +20,6 @@ interface Props {
    * without changing endpoints. 0 = straight line.
    */
   bow?: number;
-  /** Source node id — retained for parent prop compatibility (no longer wired to hover). */
-  fromId?: string;
-  /** Target node id — retained for parent prop compatibility (no longer wired to hover). */
-  toId?: string;
 }
 
 export default function WireEdge({

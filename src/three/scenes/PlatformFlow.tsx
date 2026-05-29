@@ -141,7 +141,6 @@ function PlatformFlowScene({ map }: Props) {
       {map.services.map((n, i) => (
         <ServiceRack
           key={n.id}
-          id={n.id}
           position={positions.get(n.id)!}
           label={n.label}
           subline={n.sub}
@@ -156,7 +155,6 @@ function PlatformFlowScene({ map }: Props) {
       {map.externals.map((n, i) => (
         <ServiceRack
           key={n.id}
-          id={n.id}
           position={positions.get(n.id)!}
           label={n.label}
           subline={n.sub}
@@ -167,7 +165,7 @@ function PlatformFlowScene({ map }: Props) {
         />
       ))}
 
-      {/* Edges — bowed for bidirectional pairs; labels reveal on hover */}
+      {/* Edges — bowed for bidirectional pairs */}
       {map.edges.map((e, i) => {
         const from = positions.get(e.from);
         const to = positions.get(e.to);
@@ -177,8 +175,6 @@ function PlatformFlowScene({ map }: Props) {
             key={i}
             from={from}
             to={to}
-            fromId={e.from}
-            toId={e.to}
             label={e.label}
             kind={e.kind}
             opacity={0.65}
