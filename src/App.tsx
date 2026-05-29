@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { LazyMotion, domAnimation } from 'motion/react';
 import { ThemeProvider } from './components/theme-provider';
 import { TooltipProvider } from './components/ui/tooltip';
 import Nav from './components/Nav';
-import Cursor from './components/Cursor';
 import ScrollProgress from './components/ScrollProgress';
 import Loader from './components/Loader';
 import Marquee from './components/Marquee';
@@ -15,8 +14,6 @@ import Skills from './sections/Skills';
 import Experience from './sections/Experience';
 import Projects from './sections/Projects';
 import Contact from './sections/Contact';
-
-const GlobalCanvas = lazy(() => import('./three/Canvas'));
 
 const marqueeItems = [
   'Distributed Systems',
@@ -46,19 +43,10 @@ export default function App() {
       <LazyMotion features={domAnimation}>
         <TooltipProvider delayDuration={200}>
           <Loader />
-          <Cursor />
           <ScrollProgress />
 
           {/* Phosphor terminal — fixed background, all CSS, no R3F */}
           <TerminalBackground />
-
-          {/* R3F scene overlay — sits above terminal background, below content veil.
-              Dimmed so it reads as backdrop, not foreground. */}
-          <div className="pointer-events-none fixed inset-0 z-[2] opacity-70 mix-blend-normal" aria-hidden>
-            <Suspense fallback={null}>
-              <GlobalCanvas />
-            </Suspense>
-          </div>
 
           <Nav />
 
