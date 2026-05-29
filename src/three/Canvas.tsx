@@ -1,33 +1,23 @@
 import { Canvas } from '@react-three/fiber';
 import { Suspense, useEffect, useState } from 'react';
-import { AnimatePresence, useReducedMotion } from 'motion/react';
-import RequestTrace from './scenes/RequestTrace';
-import LiveQueue from './scenes/LiveQueue';
-import ServiceRegistry from './scenes/ServiceRegistry';
-import DeploymentTimeline from './scenes/DeploymentTimeline';
-import OutboundPortal from './scenes/OutboundPortal';
+import { useReducedMotion } from 'motion/react';
+import LogStream from './scenes/LogStream';
 import Effects from './postfx/Effects';
 import { useActiveSection } from '@/lib/use-active-section';
 import { isMobile } from '@/lib/gpu';
 
-const SCENE_MAP: Record<string, React.ComponentType> = {
-  hero: RequestTrace,
-  about: LiveQueue,
-  architecture: RequestTrace,
-  skills: ServiceRegistry,
-  experience: DeploymentTimeline,
-  projects: ServiceRegistry,
-  contact: OutboundPortal,
-};
-
-const SCENE_CAMERA: Record<string, [number, number, number]> = {
-  hero: [0, 0.4, 6.5],
-  about: [0, 0, 5.5],
-  architecture: [0, 0.4, 6.5],
-  skills: [0, 0, 6],
-  experience: [0, 0, 5],
-  projects: [0, 0, 6],
-  contact: [0, 0, 4.5],
+// One unified scene across every section: a slow vertical stream of phosphor
+// log lines that reads as ambient infrastructure telemetry. We keep the active
+// section value around for subtle camera zoom variations but the scene itself
+// is shared, so there are no jarring per-section swaps.
+const SECTION_CAMERA_Z: Record<string, number> = {
+  hero: 6.4,
+  about: 5.8,
+  architecture: 6.2,
+  skills: 6.0,
+  experience: 5.6,
+  projects: 6.0,
+  contact: 5.2,
 };
 
 export default function GlobalCanvas() {
@@ -42,36 +32,26 @@ export default function GlobalCanvas() {
   }, []);
 
   if (!mounted) return null;
-  // Under reduced-motion preference, still render the scene but with auto-rotate
-  // disabled — done inside the scene components themselves.
   void reduced;
 
-  const Scene = SCENE_MAP[active] ?? RequestTrace;
-  const camera = SCENE_CAMERA[active] ?? [0, 0, 6];
+  if (mobile) return null;
 
-  if (mobile) {
-    // Mobile: skip R3F entirely; the terminal background + MessageQueue + EC2
-    // card are plenty of "infrastructure" feel on a small screen.
-    return null;
-  }
+  const cameraZ = SECTION_CAMERA_Z[active] ?? 6;
 
   return (
     <Canvas
-      key={active}
       dpr={[1, 1.7]}
-      camera={{ position: camera, fov: 45 }}
+      camera={{ position: [0, 0, cameraZ], fov: 45 }}
       gl={{ antialias: false, powerPreference: 'high-performance', alpha: true }}
       frameloop="always"
       style={{ position: 'absolute', inset: 0 }}
     >
-      <ambientLight intensity={0.35} />
-      <pointLight position={[5, 5, 6]} intensity={0.9} color="hsl(38, 95%, 65%)" />
-      <pointLight position={[-5, -3, -4]} intensity={0.6} color="hsl(18, 90%, 55%)" />
+      <ambientLight intensity={0.4} />
+      <pointLight position={[5, 5, 6]} intensity={0.7} color="hsl(38, 95%, 65%)" />
+      <pointLight position={[-5, -3, -4]} intensity={0.5} color="hsl(18, 90%, 55%)" />
 
       <Suspense fallback={null}>
-        <AnimatePresence mode="wait">
-          <Scene key={active} />
-        </AnimatePresence>
+        <LogStream />
         <Effects />
       </Suspense>
     </Canvas>
