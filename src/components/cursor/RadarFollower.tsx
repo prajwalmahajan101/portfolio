@@ -1,65 +1,69 @@
 import { useEffect, useState } from 'react';
 import { m, useSpring, type MotionValue } from 'motion/react';
 import {
+  GHOST_CHAIN_SPRING,
   GHOST_OPACITIES,
   GHOST_SCALES,
-  GHOST_SPRINGS,
+  HEAD_SPRING,
   METRICS_INTERVAL_MS,
   METRICS_ROTATION,
+  RADAR_R,
   SCAN_LINE_PERIOD_MS,
   SERVICE_NODES,
 } from './cursor.constants';
 import type { SceneId } from './cursor.types';
 
 interface Props {
-  sx: MotionValue<number>;
-  sy: MotionValue<number>;
+  rx: MotionValue<number>;
+  ry: MotionValue<number>;
   scene: SceneId;
+  isMoving: boolean;
   isHovering: boolean;
 }
 
-const R = 56;
 const STROKE = 1;
-const LABEL_OFFSET = 16;
+const LABEL_OFFSET = 14;
+const R = RADAR_R;
 
-export default function RadarFollower({ sx, sy, scene, isHovering }: Props) {
-  // Independent fan of springs — each ghost tracks the head's smoothed
-  // position directly with its own time constant. Chaining (ghost[i] →
-  // ghost[i-1]) accumulates energy through the cascade and produces ±9000px
-  // overshoots on rapid moves; independent fan is unconditionally stable.
-  const g0x = useSpring(sx, GHOST_SPRINGS[0]); const g0y = useSpring(sy, GHOST_SPRINGS[0]);
-  const g1x = useSpring(sx, GHOST_SPRINGS[1]); const g1y = useSpring(sy, GHOST_SPRINGS[1]);
-  const g2x = useSpring(sx, GHOST_SPRINGS[2]); const g2y = useSpring(sy, GHOST_SPRINGS[2]);
-  const g3x = useSpring(sx, GHOST_SPRINGS[3]); const g3y = useSpring(sy, GHOST_SPRINGS[3]);
-  const g4x = useSpring(sx, GHOST_SPRINGS[4]); const g4y = useSpring(sy, GHOST_SPRINGS[4]);
+export default function RadarFollower({ rx, ry, scene, isMoving, isHovering }: Props) {
+  // Head spring — chases the crescent target written by useCursorState.
+  const headX = useSpring(rx, HEAD_SPRING);
+  const headY = useSpring(ry, HEAD_SPRING);
 
-  const ghosts: Array<[MotionValue<number>, MotionValue<number>]> = [
-    [g0x, g0y],
-    [g1x, g1y],
-    [g2x, g2y],
-    [g3x, g3y],
-    [g4x, g4y],
-  ];
+  // Ghost chain — every link springs off the previous link with the same
+  // overdamped config (ratio ≈ 1.05). The cascade is unconditionally stable;
+  // at rest every ghost converges to the head, during motion each link lags
+  // the previous by ~50 ms producing a visible 8-radar tail.
+  const g0x = useSpring(headX, GHOST_CHAIN_SPRING); const g0y = useSpring(headY, GHOST_CHAIN_SPRING);
+  const g1x = useSpring(g0x,   GHOST_CHAIN_SPRING); const g1y = useSpring(g0y,   GHOST_CHAIN_SPRING);
+  const g2x = useSpring(g1x,   GHOST_CHAIN_SPRING); const g2y = useSpring(g1y,   GHOST_CHAIN_SPRING);
+  const g3x = useSpring(g2x,   GHOST_CHAIN_SPRING); const g3y = useSpring(g2y,   GHOST_CHAIN_SPRING);
+  const g4x = useSpring(g3x,   GHOST_CHAIN_SPRING); const g4y = useSpring(g3y,   GHOST_CHAIN_SPRING);
+  const g5x = useSpring(g4x,   GHOST_CHAIN_SPRING); const g5y = useSpring(g4y,   GHOST_CHAIN_SPRING);
+  const g6x = useSpring(g5x,   GHOST_CHAIN_SPRING); const g6y = useSpring(g5y,   GHOST_CHAIN_SPRING);
+  const g7x = useSpring(g6x,   GHOST_CHAIN_SPRING); const g7y = useSpring(g6y,   GHOST_CHAIN_SPRING);
+
+  const ghostXs = [g0x, g1x, g2x, g3x, g4x, g5x, g6x, g7x];
+  const ghostYs = [g0y, g1y, g2y, g3y, g4y, g5y, g6y, g7y];
 
   return (
     <>
-      {ghosts.map(([gx, gy], i) => (
+      {ghostXs.map((sx, i) => (
         <RadarGhost
           key={i}
-          sx={gx}
-          sy={gy}
+          sx={sx}
+          sy={ghostYs[i]}
           scale={GHOST_SCALES[i]}
           opacity={GHOST_OPACITIES[i]}
         />
       ))}
-      <RadarHead sx={sx} sy={sy} scene={scene} isHovering={isHovering} />
+      <RadarHead headX={headX} headY={headY} scene={scene} isMoving={isMoving} isHovering={isHovering} />
     </>
   );
 }
 
 // -------------------------------------------------------------------------- //
-// RadarGhost — stripped trail copy: rings + crosshair + 4 cardinal markers.  //
-// No scan-line, labels, dot grid, or metrics. Sits behind the head radar.    //
+// RadarGhost — minimal: outer ring + mid ring + crosshair + 4 cardinal dots. //
 // -------------------------------------------------------------------------- //
 
 interface GhostProps {
@@ -95,12 +99,12 @@ function RadarGhost({ sx, sy, scale, opacity }: GhostProps) {
           transform: `translate(-50%, -50%) scale(${scale})`,
         }}
       >
-        <circle cx={0} cy={0} r={R} fill="none" stroke="currentColor" strokeWidth={STROKE} opacity={0.7} />
-        <circle cx={0} cy={0} r={R * 0.62} fill="none" stroke="currentColor" strokeWidth={STROKE * 0.8} opacity={0.4} />
-        <line x1={-R} y1={0} x2={R} y2={0} stroke="currentColor" strokeWidth={STROKE * 0.5} opacity={0.3} />
-        <line x1={0} y1={-R} x2={0} y2={R} stroke="currentColor" strokeWidth={STROKE * 0.5} opacity={0.3} />
+        <circle cx={0} cy={0} r={R} fill="none" stroke="currentColor" strokeWidth={STROKE} opacity={0.85} />
+        <circle cx={0} cy={0} r={R * 0.6} fill="none" stroke="currentColor" strokeWidth={STROKE * 0.7} opacity={0.45} />
+        <line x1={-R} y1={0} x2={R} y2={0} stroke="currentColor" strokeWidth={STROKE * 0.4} opacity={0.35} />
+        <line x1={0} y1={-R} x2={0} y2={R} stroke="currentColor" strokeWidth={STROKE * 0.4} opacity={0.35} />
         {[[0, -R], [R, 0], [0, R], [-R, 0]].map(([x, y], i) => (
-          <rect key={i} x={x - 2} y={y - 2} width={4} height={4} fill="currentColor" />
+          <rect key={i} x={x - 1.6} y={y - 1.6} width={3.2} height={3.2} fill="currentColor" />
         ))}
       </svg>
     </m.div>
@@ -108,20 +112,29 @@ function RadarGhost({ sx, sy, scale, opacity }: GhostProps) {
 }
 
 // -------------------------------------------------------------------------- //
-// RadarHead — full radar with scan-line, labels, metrics. Renders on top.    //
+// RadarHead — small radar (R=38). Scan-line, service labels, and center      //
+// metrics fade in only while the cursor is moving.                           //
 // -------------------------------------------------------------------------- //
 
-function RadarHead({ sx, sy, scene, isHovering }: Props) {
+interface HeadProps {
+  headX: MotionValue<number>;
+  headY: MotionValue<number>;
+  scene: SceneId;
+  isMoving: boolean;
+  isHovering: boolean;
+}
+
+function RadarHead({ headX, headY, scene, isMoving, isHovering }: HeadProps) {
   const [metricIdx, setMetricIdx] = useState(0);
   const nodes = SERVICE_NODES[scene];
 
   useEffect(() => {
-    if (isHovering) return;
+    if (isHovering || !isMoving) return;
     const t = window.setInterval(() => {
       setMetricIdx((i) => (i + 1) % METRICS_ROTATION.length);
     }, METRICS_INTERVAL_MS);
     return () => window.clearInterval(t);
-  }, [isHovering]);
+  }, [isHovering, isMoving]);
 
   type Anchor = 'middle' | 'end' | 'start';
   type Baseline = 'alphabetic' | 'middle' | 'hanging';
@@ -136,8 +149,8 @@ function RadarHead({ sx, sy, scene, isHovering }: Props) {
     <m.div
       aria-hidden
       style={{
-        x: sx,
-        y: sy,
+        x: headX,
+        y: headY,
         position: 'fixed',
         top: 0,
         left: 0,
@@ -148,76 +161,91 @@ function RadarHead({ sx, sy, scene, isHovering }: Props) {
       }}
     >
       <m.svg
-        width={R * 2 + 120}
-        height={R * 2 + 60}
-        viewBox={`${-(R + 60)} ${-(R + 30)} ${R * 2 + 120} ${R * 2 + 60}`}
+        width={R * 2 + 100}
+        height={R * 2 + 48}
+        viewBox={`${-(R + 50)} ${-(R + 24)} ${R * 2 + 100} ${R * 2 + 48}`}
         style={{ overflow: 'visible', transform: 'translate(-50%, -50%)' }}
         initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 0.92, scale: 1 }}
+        animate={{ opacity: 0.95, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        <g opacity={0.32}>
-          {Array.from({ length: 9 }).map((_, gy) =>
-            Array.from({ length: 9 }).map((_, gx) => {
-              const x = -R + (gx * (R * 2)) / 8;
-              const y = -R + (gy * (R * 2)) / 8;
+        {/* Always-on: dot grid (low opacity at rest, brighter while moving) */}
+        <m.g
+          animate={{ opacity: isMoving ? 0.36 : 0.22 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        >
+          {Array.from({ length: 7 }).map((_, gy) =>
+            Array.from({ length: 7 }).map((_, gx) => {
+              const x = -R + (gx * (R * 2)) / 6;
+              const y = -R + (gy * (R * 2)) / 6;
               if (x * x + y * y > R * R) return null;
               return <circle key={`${gx}-${gy}`} cx={x} cy={y} r={0.6} fill="currentColor" />;
             }),
           )}
-        </g>
+        </m.g>
 
-        <circle cx={0} cy={0} r={R} fill="none" stroke="currentColor" strokeWidth={STROKE} opacity={0.7} />
-        <circle cx={0} cy={0} r={R * 0.62} fill="none" stroke="currentColor" strokeWidth={STROKE * 0.8} opacity={0.35} />
-        <line x1={-R} y1={0} x2={R} y2={0} stroke="currentColor" strokeWidth={STROKE * 0.5} opacity={0.32} />
-        <line x1={0} y1={-R} x2={0} y2={R} stroke="currentColor" strokeWidth={STROKE * 0.5} opacity={0.32} />
-
+        {/* Always-on: rings + crosshair + cardinal markers */}
+        <circle cx={0} cy={0} r={R} fill="none" stroke="currentColor" strokeWidth={STROKE} opacity={0.78} />
+        <circle cx={0} cy={0} r={R * 0.6} fill="none" stroke="currentColor" strokeWidth={STROKE * 0.75} opacity={0.4} />
+        <line x1={-R} y1={0} x2={R} y2={0} stroke="currentColor" strokeWidth={STROKE * 0.5} opacity={0.34} />
+        <line x1={0} y1={-R} x2={0} y2={R} stroke="currentColor" strokeWidth={STROKE * 0.5} opacity={0.34} />
         {[[0, -R], [R, 0], [0, R], [-R, 0]].map(([x, y], i) => (
-          <rect key={i} x={x - 2} y={y - 2} width={4} height={4} fill="currentColor" />
+          <rect key={i} x={x - 1.8} y={y - 1.8} width={3.6} height={3.6} fill="currentColor" />
         ))}
 
-        <g style={{ transformOrigin: '0 0', animation: `cursor-radar-spin ${SCAN_LINE_PERIOD_MS}ms linear infinite` }}>
-          <line x1={0} y1={0} x2={R} y2={0} stroke="currentColor" strokeWidth={1.4} opacity={0.9} />
+        {/* Motion-gated: scan-line + sweep wedge */}
+        <m.g
+          animate={{ opacity: isMoving ? 1 : 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          style={{ transformOrigin: '0 0', animation: `cursor-radar-spin ${SCAN_LINE_PERIOD_MS}ms linear infinite` }}
+        >
+          <line x1={0} y1={0} x2={R} y2={0} stroke="currentColor" strokeWidth={1.3} opacity={0.95} />
           <path
             d={`M 0 0 L ${R} 0 A ${R} ${R} 0 0 0 ${R * Math.cos(-0.5)} ${R * Math.sin(-0.5)} Z`}
             fill="currentColor"
-            opacity={0.12}
+            opacity={0.16}
           />
-        </g>
+        </m.g>
 
-        <text
+        {/* Motion-gated: center metrics */}
+        <m.text
           x={0}
           y={2}
           fill="currentColor"
           fontFamily="JetBrains Mono, ui-monospace, monospace"
-          fontSize={8.5}
+          fontSize={7.5}
           textAnchor="middle"
-          opacity={0.78}
-          style={{ transition: 'opacity 220ms ease' }}
+          animate={{ opacity: isMoving ? 0.85 : 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {METRICS_ROTATION[metricIdx]}
-        </text>
+        </m.text>
 
-        {nodes.map((label, i) => {
-          const [lx, ly, anchor, baseline] = labelPositions[i];
-          return (
-            <text
-              key={label}
-              x={lx}
-              y={ly}
-              fill="currentColor"
-              fontFamily="JetBrains Mono, ui-monospace, monospace"
-              fontSize={9}
-              fontWeight={600}
-              textAnchor={anchor}
-              dominantBaseline={baseline}
-              opacity={0.92}
-              style={{ textTransform: 'uppercase', letterSpacing: '0.12em' }}
-            >
-              {label}
-            </text>
-          );
-        })}
+        {/* Motion-gated: service node labels */}
+        <m.g
+          animate={{ opacity: isMoving ? 0.95 : 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        >
+          {nodes.map((label, i) => {
+            const [lx, ly, anchor, baseline] = labelPositions[i];
+            return (
+              <text
+                key={label}
+                x={lx}
+                y={ly}
+                fill="currentColor"
+                fontFamily="JetBrains Mono, ui-monospace, monospace"
+                fontSize={8.5}
+                fontWeight={600}
+                textAnchor={anchor}
+                dominantBaseline={baseline}
+                style={{ textTransform: 'uppercase', letterSpacing: '0.12em' }}
+              >
+                {label}
+              </text>
+            );
+          })}
+        </m.g>
       </m.svg>
     </m.div>
   );

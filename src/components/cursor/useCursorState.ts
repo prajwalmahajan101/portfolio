@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMotionValue, useSpring, type MotionValue } from 'motion/react';
+import { useMotionValue, type MotionValue } from 'motion/react';
 import {
+  CRESCENT_INSIDE,
+  CRESCENT_OUTSIDE,
   HUD_DEBOUNCE_MS,
+  IDLENESS_SMOOTHING,
+  IDLE_VELOCITY_THRESHOLD,
+  IS_MOVING_HYSTERESIS,
   MAGNET_LERP,
   MAGNET_RADIUS_PX,
   SECTION_THROTTLE_MS,
-  SPRING,
+  VELOCITY_DECAY,
 } from './cursor.constants';
 import type { CursorHoverTarget, SceneId } from './cursor.types';
 
@@ -37,13 +42,13 @@ function deriveLabel(el: Element): { label: string; kind: CursorHoverTarget['kin
 }
 
 export interface CursorState {
-  // raw mouse — drives the caret directly (no React renders)
+  // raw cursor — drives the block caret + HUD (no React renders per frame)
   mx: MotionValue<number>;
   my: MotionValue<number>;
-  // smoothed — drives the radar follower
-  sx: MotionValue<number>;
-  sy: MotionValue<number>;
-  // velocity ref (read each frame in the RAF loop)
+  // crescent-offset radar target — head spring lives in RadarFollower
+  rx: MotionValue<number>;
+  ry: MotionValue<number>;
+  // velocity ref — written by pointermove, read by the state-machine RAF
   velocity: React.MutableRefObject<{ vx: number; vy: number; speed: number }>;
   // section under the cursor
   scene: SceneId;
@@ -51,6 +56,8 @@ export interface CursorState {
   hover: CursorHoverTarget | null;
   // pressed
   isDown: boolean;
+  // gates the scan-line / labels / metrics on the head radar (true while moving)
+  isMoving: boolean;
   // mounted (gated on touch + reduced-motion)
   active: boolean;
 }
@@ -58,8 +65,8 @@ export interface CursorState {
 export function useCursorState(): CursorState {
   const mx = useMotionValue(-9999);
   const my = useMotionValue(-9999);
-  const sx = useSpring(mx, SPRING);
-  const sy = useSpring(my, SPRING);
+  const rx = useMotionValue(-9999);
+  const ry = useMotionValue(-9999);
 
   const velocity = useRef({ vx: 0, vy: 0, speed: 0 });
   const lastSample = useRef({ x: 0, y: 0, t: performance.now() });
@@ -67,6 +74,7 @@ export function useCursorState(): CursorState {
   const [scene, setScene] = useState<SceneId>('hero');
   const [hover, setHover] = useState<CursorHoverTarget | null>(null);
   const [isDown, setIsDown] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
   const [active, setActive] = useState(false);
 
   // Gate: touch + reduced-motion
@@ -83,7 +91,7 @@ export function useCursorState(): CursorState {
     };
   }, []);
 
-  // Mouse / pointer wiring
+  // Pointer wiring — raw cursor, velocity, magnetic, section, HUD
   useEffect(() => {
     if (!active) return;
 
@@ -104,8 +112,7 @@ export function useCursorState(): CursorState {
       };
       lastSample.current = { x: e.clientX, y: e.clientY, t: now };
 
-      // Magnetic hover: if a [data-cursor="hover"] target is within MAGNET_RADIUS_PX,
-      // pull the caret 20% toward its center.
+      // Magnetic hover — pull caret toward [data-cursor="hover"] target center
       let cx = e.clientX;
       let cy = e.clientY;
       const target = lastHoverEl;
@@ -122,7 +129,6 @@ export function useCursorState(): CursorState {
       mx.set(cx);
       my.set(cy);
 
-      // Throttled section + hover detection
       if (now - sectionTimer > SECTION_THROTTLE_MS) {
         sectionTimer = now;
         const under = document.elementFromPoint(e.clientX, e.clientY);
@@ -133,7 +139,6 @@ export function useCursorState(): CursorState {
         }
       }
 
-      // HUD: find nearest interactive ancestor; debounce updates
       const target2 = e.target instanceof Element
         ? e.target.closest('a, button, [data-cursor], [data-cursor-label]')
         : null;
@@ -141,15 +146,9 @@ export function useCursorState(): CursorState {
         lastHoverEl = target2;
         window.clearTimeout(hudTimer);
         hudTimer = window.setTimeout(() => {
-          if (!target2) {
-            setHover(null);
-            return;
-          }
+          if (!target2) { setHover(null); return; }
           const { label, kind } = deriveLabel(target2);
-          if (!label) {
-            setHover(null);
-            return;
-          }
+          if (!label) { setHover(null); return; }
           setHover({ el: target2, rect: target2.getBoundingClientRect(), label, kind });
         }, HUD_DEBOUNCE_MS);
       }
@@ -177,5 +176,68 @@ export function useCursorState(): CursorState {
     };
   }, [active, mx, my]);
 
-  return { mx, my, sx, sy, velocity, scene, hover, isDown, active };
+  // State-machine RAF — direction memory, idleness low-pass, velocity decay,
+  // crescent radar target. The ghost chain is built inside RadarFollower via
+  // chained useSpring calls; there is no ghost-position computation here.
+  useEffect(() => {
+    if (!active) return;
+
+    const dir = { x: 0, y: -1 };
+    let idleness = 1;
+    let lastIsMoving = false;
+    let raf = 0;
+
+    const tick = () => {
+      const cx = mx.get();
+      const cy = my.get();
+      const v = velocity.current;
+
+      if (cx <= -1000) {
+        raf = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      // Direction memory — retains last motion direction when at rest so the
+      // crescent stays oriented after the cursor stops moving.
+      if (v.speed > IDLE_VELOCITY_THRESHOLD) {
+        const inv = 1 / v.speed;
+        dir.x = v.vx * inv;
+        dir.y = v.vy * inv;
+      }
+
+      // Per-frame velocity decay so a rapid drag that ends without a follow-up
+      // slow move still lets idleness rise (otherwise the crescent never
+      // re-forms because velocity stays pinned at its last sampled value).
+      v.vx *= VELOCITY_DECAY;
+      v.vy *= VELOCITY_DECAY;
+      v.speed = Math.hypot(v.vx, v.vy);
+
+      // Idleness low-pass — smooths the crescent transition between
+      // cursor-inside-radar (motion) and cursor-just-outside-radar (rest).
+      const targetIdle = v.speed < IDLE_VELOCITY_THRESHOLD ? 1 : 0;
+      idleness += (targetIdle - idleness) * IDLENESS_SMOOTHING;
+
+      // Crescent offset: cursor sits INSIDE radar at full motion (offset small,
+      // biased toward motion direction), and JUST OUTSIDE radar at rest
+      // (offset large, behind the last-motion direction).
+      const offMag = CRESCENT_INSIDE + (CRESCENT_OUTSIDE - CRESCENT_INSIDE) * idleness;
+      rx.set(cx - dir.x * offMag);
+      ry.set(cy - dir.y * offMag);
+
+      const isMovingNow = idleness < IS_MOVING_HYSTERESIS;
+      if (isMovingNow !== lastIsMoving) {
+        lastIsMoving = isMovingNow;
+        setIsMoving(isMovingNow);
+      }
+
+      raf = window.requestAnimationFrame(tick);
+    };
+
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+    // mx/my/rx/ry are stable refs from useMotionValue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  return { mx, my, rx, ry, velocity, scene, hover, isDown, isMoving, active };
 }

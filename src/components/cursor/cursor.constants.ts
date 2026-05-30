@@ -39,23 +39,38 @@ export const METRICS_INTERVAL_MS = 3000;
 export const REQUEST_SPAWN_INTERVAL_MS = 2000;
 export const SCAN_LINE_PERIOD_MS = 2500;
 
-export const SPRING = { stiffness: 140, damping: 18, mass: 0.6 };
+// Radar head — smaller than v1/v2 and held at a moderate spring (not tighter).
+// The "head sits close to the cursor" feel is achieved by the crescent offset,
+// not by snapping the spring. Slightly overdamped (ratio ~1.05) so the spring
+// doesn't overshoot when its target is moving fast (rapid drags).
+export const RADAR_R = 38;
+export const HEAD_SPRING = { stiffness: 220, damping: 22, mass: 0.5 };
 
-// Radar ghost trail: each ghost springs DIRECTLY off the head's smoothed
-// position (independent fan, not a chain). Chaining springs through other
-// springs accumulates energy and overshoots wildly on rapid cursor moves —
-// the independent fan stays stable because each ghost is a single 2nd-order
-// system tracking the same head signal with its own time constant.
-//
-// All configs are overdamped (ratio ≥ 1.08) → no overshoot. Stiffness drops
-// geometrically so each ghost lags progressively more, forming a clear tail.
-export const GHOST_COUNT = 5;
-export const GHOST_SCALES = [0.78, 0.6, 0.46, 0.36, 0.28] as const;
-export const GHOST_OPACITIES = [0.55, 0.32, 0.18, 0.1, 0.06] as const;
-export const GHOST_SPRINGS = [
-  { stiffness: 100, damping: 18, mass: 0.7 },  // ratio ~1.08 (light over) — arrives nearly with head
-  { stiffness:  70, damping: 18, mass: 0.8 },  // ratio ~1.20
-  { stiffness:  50, damping: 18, mass: 0.9 },  // ratio ~1.34
-  { stiffness:  35, damping: 18, mass: 1.0 },  // ratio ~1.52
-  { stiffness:  25, damping: 18, mass: 1.1 },  // ratio ~1.72 (well over) — lazy tail
-] as const;
+// Ghost trail — 8-link spring chain. Each ghost springs off the previous link
+// (ghost[0] off the head, ghost[i] off ghost[i-1]). At rest the chain collapses
+// onto the head so smaller rings nest inside bigger ones inside the head ring;
+// during motion each link lags the previous by ~50 ms, producing a visible
+// 8-radar tail aligned along the motion direction.
+export const GHOST_COUNT = 8;
+export const GHOST_SCALES    = [0.88, 0.76, 0.66, 0.56, 0.48, 0.40, 0.32, 0.24] as const;
+export const GHOST_OPACITIES = [0.85, 0.70, 0.58, 0.46, 0.36, 0.26, 0.16, 0.08] as const;
+// One spring config used by every chain link. Damping ratio ζ ≈ 1.05 (light
+// overdamp) — each link is non-oscillating, so the 8-link cascade cannot
+// resonate even on whip-back direction reversals. Per-link time constant
+// ≈ 52 ms, cumulative chain lag ≈ 416 ms (visible tail during motion).
+export const GHOST_CHAIN_SPRING = { stiffness: 200, damping: 23, mass: 0.6 };
+
+// Velocity ref isn't otherwise reset between pointermove events, so a rapid
+// drag that ends without a subsequent slow move keeps velocity pinned high
+// (idleness never rises, crescent never forms). Decay per RAF frame fixes it.
+export const VELOCITY_DECAY = 0.86;
+
+// Crescent geometry — cursor sits OUTSIDE the radar when idle (forms a moon),
+// INSIDE the radar (biased toward motion direction) when moving fast.
+export const CRESCENT_INSIDE  = RADAR_R * 0.45;  // distance from radar center to cursor at full motion
+export const CRESCENT_OUTSIDE = RADAR_R + 8;     // distance from radar center to cursor at full rest
+
+// Idleness scalar (0 = full motion, 1 = full idle) drives crescent + label fade.
+export const IDLE_VELOCITY_THRESHOLD = 0.04; // px/ms — below this, cursor is idle
+export const IDLENESS_SMOOTHING = 0.08;      // per-frame low-pass smoothing
+export const IS_MOVING_HYSTERESIS = 0.55;    // isMoving = idleness < this (drives scan/label fade)

@@ -21,7 +21,13 @@ export default function CursorSystem() {
   return (
     <>
       <TrailCanvas mx={state.mx} my={state.my} velocity={state.velocity} isDown={state.isDown} />
-      <RadarFollower sx={state.sx} sy={state.sy} scene={state.scene} isHovering={!!state.hover} />
+      <RadarFollower
+        rx={state.rx}
+        ry={state.ry}
+        scene={state.scene}
+        isMoving={state.isMoving}
+        isHovering={!!state.hover}
+      />
       <BlockCaret mx={state.mx} my={state.my} hover={!!state.hover} isDown={state.isDown} />
       <ContextHUD mx={state.mx} my={state.my} hover={state.hover} />
     </>
