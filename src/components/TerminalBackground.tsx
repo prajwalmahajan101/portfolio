@@ -90,10 +90,10 @@ export default function TerminalBackground() {
 
       {/* Log columns — extra opacity dial-down on light so the cream paper stays the focus */}
       <div className="absolute inset-0 grid grid-cols-1 gap-12 px-6 py-16 md:grid-cols-2 md:gap-24 md:px-12 md:py-24">
-        <div className="phosphor-glow opacity-[0.55] md:opacity-[0.45] [.light_&]:opacity-[0.7] [.light_&]:md:opacity-[0.65]">
+        <div className="phosphor-glow opacity-[0.38] md:opacity-[0.3] [.light_&]:opacity-[0.4] [.light_&]:md:opacity-[0.34]">
           <Column lines={colA} duration={45} showCursor />
         </div>
-        <div className="phosphor-glow hidden opacity-[0.35] md:block [.light_&]:opacity-[0.5]">
+        <div className="phosphor-glow hidden opacity-[0.22] md:block [.light_&]:opacity-[0.28]">
           <Column lines={colB} duration={60} delay={-15} />
         </div>
       </div>
