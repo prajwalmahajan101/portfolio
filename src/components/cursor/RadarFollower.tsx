@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { m, useSpring, type MotionValue } from 'motion/react';
 import {
-  GHOST_CHAIN_SPRING,
+  CHAIN_SPRING,
   GHOST_OPACITIES,
   GHOST_SCALES,
-  HEAD_SPRING,
   METRICS_INTERVAL_MS,
   METRICS_ROTATION,
   RADAR_R,
@@ -26,22 +25,20 @@ const LABEL_OFFSET = 14;
 const R = RADAR_R;
 
 export default function RadarFollower({ rx, ry, scene, isMoving, isHovering }: Props) {
-  // Head spring — chases the crescent target written by useCursorState.
-  const headX = useSpring(rx, HEAD_SPRING);
-  const headY = useSpring(ry, HEAD_SPRING);
-
-  // Ghost chain — every link springs off the previous link with the same
-  // overdamped config (ratio ≈ 1.05). The cascade is unconditionally stable;
-  // at rest every ghost converges to the head, during motion each link lags
-  // the previous by ~50 ms producing a visible 8-radar tail.
-  const g0x = useSpring(headX, GHOST_CHAIN_SPRING); const g0y = useSpring(headY, GHOST_CHAIN_SPRING);
-  const g1x = useSpring(g0x,   GHOST_CHAIN_SPRING); const g1y = useSpring(g0y,   GHOST_CHAIN_SPRING);
-  const g2x = useSpring(g1x,   GHOST_CHAIN_SPRING); const g2y = useSpring(g1y,   GHOST_CHAIN_SPRING);
-  const g3x = useSpring(g2x,   GHOST_CHAIN_SPRING); const g3y = useSpring(g2y,   GHOST_CHAIN_SPRING);
-  const g4x = useSpring(g3x,   GHOST_CHAIN_SPRING); const g4y = useSpring(g3y,   GHOST_CHAIN_SPRING);
-  const g5x = useSpring(g4x,   GHOST_CHAIN_SPRING); const g5y = useSpring(g4y,   GHOST_CHAIN_SPRING);
-  const g6x = useSpring(g5x,   GHOST_CHAIN_SPRING); const g6y = useSpring(g5y,   GHOST_CHAIN_SPRING);
-  const g7x = useSpring(g6x,   GHOST_CHAIN_SPRING); const g7y = useSpring(g6y,   GHOST_CHAIN_SPRING);
+  // 9-link chain: head springs off the crescent target written by
+  // useCursorState; each ghost springs off the previous link. Every link
+  // shares CHAIN_SPRING so the whole cascade reads as one homogeneous trail
+  // — the head is just the first (largest, most-detailed) link.
+  const headX = useSpring(rx, CHAIN_SPRING);
+  const headY = useSpring(ry, CHAIN_SPRING);
+  const g0x = useSpring(headX, CHAIN_SPRING); const g0y = useSpring(headY, CHAIN_SPRING);
+  const g1x = useSpring(g0x, CHAIN_SPRING); const g1y = useSpring(g0y, CHAIN_SPRING);
+  const g2x = useSpring(g1x, CHAIN_SPRING); const g2y = useSpring(g1y, CHAIN_SPRING);
+  const g3x = useSpring(g2x, CHAIN_SPRING); const g3y = useSpring(g2y, CHAIN_SPRING);
+  const g4x = useSpring(g3x, CHAIN_SPRING); const g4y = useSpring(g3y, CHAIN_SPRING);
+  const g5x = useSpring(g4x, CHAIN_SPRING); const g5y = useSpring(g4y, CHAIN_SPRING);
+  const g6x = useSpring(g5x, CHAIN_SPRING); const g6y = useSpring(g5y, CHAIN_SPRING);
+  const g7x = useSpring(g6x, CHAIN_SPRING); const g7y = useSpring(g6y, CHAIN_SPRING);
 
   const ghostXs = [g0x, g1x, g2x, g3x, g4x, g5x, g6x, g7x];
   const ghostYs = [g0y, g1y, g2y, g3y, g4y, g5y, g6y, g7y];

@@ -39,26 +39,24 @@ export const METRICS_INTERVAL_MS = 3000;
 export const REQUEST_SPAWN_INTERVAL_MS = 2000;
 export const SCAN_LINE_PERIOD_MS = 2500;
 
-// Radar head — smaller than v1/v2 and held at a moderate spring (not tighter).
-// The "head sits close to the cursor" feel is achieved by the crescent offset,
-// not by snapping the spring. Slightly overdamped (ratio ~1.05) so the spring
-// doesn't overshoot when its target is moving fast (rapid drags).
+// Radar head — smaller than v1/v2. Position is the crescent target written
+// by useCursorState; the spring config is shared with the rest of the chain
+// (see CHAIN_SPRING below) so the whole 9-link cascade feels homogeneous.
 export const RADAR_R = 38;
-export const HEAD_SPRING = { stiffness: 220, damping: 22, mass: 0.5 };
 
-// Ghost trail — 8-link spring chain. Each ghost springs off the previous link
-// (ghost[0] off the head, ghost[i] off ghost[i-1]). At rest the chain collapses
-// onto the head so smaller rings nest inside bigger ones inside the head ring;
-// during motion each link lags the previous by ~50 ms, producing a visible
-// 8-radar tail aligned along the motion direction.
+// 8-ghost trail forming a chain with the head: head springs off the crescent
+// target, ghost[0] springs off the head, ghost[i] springs off ghost[i-1].
+// Every link uses the SAME spring config — the head's only difference from a
+// ghost is its scale, detail, and the fact that the cursor sits on it.
 export const GHOST_COUNT = 8;
 export const GHOST_SCALES    = [0.88, 0.76, 0.66, 0.56, 0.48, 0.40, 0.32, 0.24] as const;
 export const GHOST_OPACITIES = [0.85, 0.70, 0.58, 0.46, 0.36, 0.26, 0.16, 0.08] as const;
-// One spring config used by every chain link. Damping ratio ζ ≈ 1.05 (light
-// overdamp) — each link is non-oscillating, so the 8-link cascade cannot
-// resonate even on whip-back direction reversals. Per-link time constant
-// ≈ 52 ms, cumulative chain lag ≈ 416 ms (visible tail during motion).
-export const GHOST_CHAIN_SPRING = { stiffness: 200, damping: 23, mass: 0.6 };
+
+// One spring config used by every link in the chain (head + 8 ghosts). Damping
+// ratio ζ ≈ 1.05 (light overdamp) — each link is non-oscillating, so the
+// 9-link cascade cannot resonate even on whip-back direction reversals.
+// Per-link time constant ≈ 52 ms; total chain lag ≈ 470 ms.
+export const CHAIN_SPRING = { stiffness: 200, damping: 23, mass: 0.6 };
 
 // Velocity ref isn't otherwise reset between pointermove events, so a rapid
 // drag that ends without a subsequent slow move keeps velocity pinned high
