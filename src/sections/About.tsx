@@ -38,7 +38,7 @@ export default function About() {
           </Reveal>
         </div>
 
-        <Stagger className="mt-24 grid gap-px overflow-hidden rounded-2xl border border-border/60 bg-border md:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="mt-24 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2 lg:grid-cols-4">
           {stats.map((s) => {
             const isInt = /^\d+$/.test(s.primary.trim());
             const parsedPrimary = isInt ? parseInt(s.primary, 10) : NaN;
