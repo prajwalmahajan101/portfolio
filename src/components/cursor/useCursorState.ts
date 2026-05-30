@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMotionValue, type MotionValue } from 'motion/react';
+import { motionValue, useMotionValue, type MotionValue } from 'motion/react';
 import {
+  CHAIN_SPRING,
   CRESCENT_INSIDE,
   CRESCENT_OUTSIDE,
+  GHOST_COUNT,
   HUD_DEBOUNCE_MS,
   IDLENESS_SMOOTHING,
   IDLE_VELOCITY_THRESHOLD,
@@ -45,9 +47,14 @@ export interface CursorState {
   // raw cursor — drives the block caret + HUD (no React renders per frame)
   mx: MotionValue<number>;
   my: MotionValue<number>;
-  // crescent-offset radar target — head spring lives in RadarFollower
+  // crescent-offset radar target — head of the 9-link chain
   rx: MotionValue<number>;
   ry: MotionValue<number>;
+  // 8 ghost positions (g0..g7) integrated each frame in the state-machine RAF.
+  // gx[0] follows rx; gx[i] follows gx[i-1]. Each link uses the same
+  // CHAIN_SPRING via semi-implicit Euler — see the chain block in `tick`.
+  gx: MotionValue<number>[];
+  gy: MotionValue<number>[];
   // velocity ref — written by pointermove, read by the state-machine RAF
   velocity: React.MutableRefObject<{ vx: number; vy: number; speed: number }>;
   // section under the cursor
@@ -67,6 +74,25 @@ export function useCursorState(): CursorState {
   const my = useMotionValue(-9999);
   const rx = useMotionValue(-9999);
   const ry = useMotionValue(-9999);
+
+  // 8-link spring chain — MotionValues (consumed by RadarFollower) plus the
+  // internal pos/vel arrays integrated each frame. Single lazy allocation:
+  // cheaper than 16 useMotionValue calls and avoids a fixed-count hook loop.
+  const chainRef = useRef<{
+    gx: MotionValue<number>[];
+    gy: MotionValue<number>[];
+    pos: Array<{ x: number; y: number }>;
+    vel: Array<{ x: number; y: number }>;
+  } | null>(null);
+  if (!chainRef.current) {
+    chainRef.current = {
+      gx: Array.from({ length: GHOST_COUNT }, () => motionValue(-9999)),
+      gy: Array.from({ length: GHOST_COUNT }, () => motionValue(-9999)),
+      pos: Array.from({ length: GHOST_COUNT }, () => ({ x: -9999, y: -9999 })),
+      vel: Array.from({ length: GHOST_COUNT }, () => ({ x: 0, y: 0 })),
+    };
+  }
+  const chain = chainRef.current;
 
   const velocity = useRef({ vx: 0, vy: 0, speed: 0 });
   const lastSample = useRef({ x: 0, y: 0, t: performance.now() });
@@ -177,8 +203,14 @@ export function useCursorState(): CursorState {
   }, [active, mx, my]);
 
   // State-machine RAF — direction memory, idleness low-pass, velocity decay,
-  // crescent radar target. The ghost chain is built inside RadarFollower via
-  // chained useSpring calls; there is no ghost-position computation here.
+  // crescent radar target, AND the 8-link ghost chain integration. Previously
+  // the chain was built inside RadarFollower with chained useSpring; that
+  // didn't propagate (links 4..7 stuck at the -9999 sentinel, links 1..3
+  // non-monotonic) because Motion's useSpring doesn't reliably subscribe when
+  // the source is itself a useSpring output. Replacing the subscription graph
+  // with a deterministic semi-implicit Euler chain in one RAF fixes the order
+  // invariant structurally — pos[i] is integrated against pos[i-1] right
+  // before pos[i+1] integrates against the new pos[i], every single frame.
   useEffect(() => {
     if (!active) return;
 
@@ -187,12 +219,21 @@ export function useCursorState(): CursorState {
     let lastIsMoving = false;
     let raf = 0;
 
+    // Chain integration state — see CHAIN_SPRING for the physical constants.
+    const { stiffness: k, damping: c, mass: m } = CHAIN_SPRING;
+    let primed = false;
+    let lastTickTime = performance.now();
+
     const tick = () => {
       const cx = mx.get();
       const cy = my.get();
       const v = velocity.current;
+      const now = performance.now();
 
       if (cx <= -1000) {
+        // Off-page: drop the prime so re-entry restarts the chain at the new
+        // appearance point rather than sprinting in from wherever it stopped.
+        primed = false;
         raf = window.requestAnimationFrame(tick);
         return;
       }
@@ -221,8 +262,44 @@ export function useCursorState(): CursorState {
       // biased toward motion direction), and JUST OUTSIDE radar at rest
       // (offset large, behind the last-motion direction).
       const offMag = CRESCENT_INSIDE + (CRESCENT_OUTSIDE - CRESCENT_INSIDE) * idleness;
-      rx.set(cx - dir.x * offMag);
-      ry.set(cy - dir.y * offMag);
+      const headX = cx - dir.x * offMag;
+      const headY = cy - dir.y * offMag;
+      rx.set(headX);
+      ry.set(headY);
+
+      // ---- Chain integration ----
+      // First frame after the cursor appears: collapse every link onto the
+      // head so the chain doesn't visibly sprint in from the -9999 sentinel.
+      if (!primed) {
+        for (let i = 0; i < GHOST_COUNT; i++) {
+          chain.pos[i].x = headX; chain.pos[i].y = headY;
+          chain.vel[i].x = 0;     chain.vel[i].y = 0;
+          chain.gx[i].set(headX); chain.gy[i].set(headY);
+        }
+        primed = true;
+        lastTickTime = now;
+      } else {
+        // Clamp dt so a tab-switch frame drop can't make a single Euler step
+        // overshoot and blow up — 1/30s is the worst-case integrator window.
+        const dt = Math.min((now - lastTickTime) / 1000, 1 / 30);
+        lastTickTime = now;
+
+        // Sequential update: i reads pos[i-1] AFTER pos[i-1] was just
+        // integrated this frame. This is what gives the chain its order
+        // invariant — link i is always pulled toward the up-to-date upstream.
+        for (let i = 0; i < GHOST_COUNT; i++) {
+          const srcX = i === 0 ? headX : chain.pos[i - 1].x;
+          const srcY = i === 0 ? headY : chain.pos[i - 1].y;
+          const p = chain.pos[i];
+          const vv = chain.vel[i];
+          const ax = (-k * (p.x - srcX) - c * vv.x) / m;
+          const ay = (-k * (p.y - srcY) - c * vv.y) / m;
+          vv.x += ax * dt; vv.y += ay * dt;
+          p.x  += vv.x * dt; p.y  += vv.y * dt;
+          chain.gx[i].set(p.x);
+          chain.gy[i].set(p.y);
+        }
+      }
 
       const isMovingNow = idleness < IS_MOVING_HYSTERESIS;
       if (isMovingNow !== lastIsMoving) {
@@ -235,9 +312,14 @@ export function useCursorState(): CursorState {
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-    // mx/my/rx/ry are stable refs from useMotionValue.
+    // mx/my/rx/ry are stable refs from useMotionValue; `chain` is a stable
+    // ref-held container.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
-  return { mx, my, rx, ry, velocity, scene, hover, isDown, isMoving, active };
+  return {
+    mx, my, rx, ry,
+    gx: chain.gx, gy: chain.gy,
+    velocity, scene, hover, isDown, isMoving, active,
+  };
 }

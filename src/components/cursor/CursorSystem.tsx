@@ -24,6 +24,8 @@ export default function CursorSystem() {
       <RadarFollower
         rx={state.rx}
         ry={state.ry}
+        gx={state.gx}
+        gy={state.gy}
         scene={state.scene}
         isMoving={state.isMoving}
         isHovering={!!state.hover}

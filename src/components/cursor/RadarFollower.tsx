@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { m, useSpring, type MotionValue } from 'motion/react';
+import { m, type MotionValue } from 'motion/react';
 import {
-  CHAIN_SPRING,
   GHOST_OPACITIES,
   GHOST_SCALES,
   METRICS_INTERVAL_MS,
@@ -15,6 +14,11 @@ import type { SceneId } from './cursor.types';
 interface Props {
   rx: MotionValue<number>;
   ry: MotionValue<number>;
+  // 8-link ghost chain — every gx[i]/gy[i] is integrated each frame inside
+  // useCursorState's state-machine RAF (semi-implicit Euler against the prior
+  // link). RadarFollower just renders them; no spring graph here.
+  gx: MotionValue<number>[];
+  gy: MotionValue<number>[];
   scene: SceneId;
   isMoving: boolean;
   isHovering: boolean;
@@ -24,33 +28,14 @@ const STROKE = 1;
 const LABEL_OFFSET = 14;
 const R = RADAR_R;
 
-export default function RadarFollower({ rx, ry, scene, isMoving, isHovering }: Props) {
-  // 9-member position series: rx → g0 → g1 → … → g7. Every step in the chain
-  // uses the same CHAIN_SPRING. rx is the head's position directly (written
-  // each frame by useCursorState's crescent computation, already smoothed via
-  // its idleness low-pass + velocity decay) — there is no separate head
-  // spring on top, so the head sits exactly at the crescent target and shares
-  // the same MotionValue as the chain source. At rest every member converges
-  // to one point: rx == g0 == g1 == … == g7.
-  const g0x = useSpring(rx, CHAIN_SPRING); const g0y = useSpring(ry, CHAIN_SPRING);
-  const g1x = useSpring(g0x, CHAIN_SPRING); const g1y = useSpring(g0y, CHAIN_SPRING);
-  const g2x = useSpring(g1x, CHAIN_SPRING); const g2y = useSpring(g1y, CHAIN_SPRING);
-  const g3x = useSpring(g2x, CHAIN_SPRING); const g3y = useSpring(g2y, CHAIN_SPRING);
-  const g4x = useSpring(g3x, CHAIN_SPRING); const g4y = useSpring(g3y, CHAIN_SPRING);
-  const g5x = useSpring(g4x, CHAIN_SPRING); const g5y = useSpring(g4y, CHAIN_SPRING);
-  const g6x = useSpring(g5x, CHAIN_SPRING); const g6y = useSpring(g5y, CHAIN_SPRING);
-  const g7x = useSpring(g6x, CHAIN_SPRING); const g7y = useSpring(g6y, CHAIN_SPRING);
-
-  const ghostXs = [g0x, g1x, g2x, g3x, g4x, g5x, g6x, g7x];
-  const ghostYs = [g0y, g1y, g2y, g3y, g4y, g5y, g6y, g7y];
-
+export default function RadarFollower({ rx, ry, gx, gy, scene, isMoving, isHovering }: Props) {
   return (
     <>
-      {ghostXs.map((sx, i) => (
+      {gx.map((sx, i) => (
         <RadarGhost
           key={i}
           sx={sx}
-          sy={ghostYs[i]}
+          sy={gy[i]}
           scale={GHOST_SCALES[i]}
           opacity={GHOST_OPACITIES[i]}
         />
