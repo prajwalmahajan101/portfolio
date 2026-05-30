@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
 import { m, type MotionValue } from 'motion/react';
 import {
   GHOST_OPACITIES,
   GHOST_SCALES,
-  METRICS_INTERVAL_MS,
-  METRICS_ROTATION,
   RADAR_R,
   SCAN_LINE_PERIOD_MS,
   SERVICE_NODES,
@@ -14,21 +11,20 @@ import type { SceneId } from './cursor.types';
 interface Props {
   rx: MotionValue<number>;
   ry: MotionValue<number>;
-  // 8-link ghost chain — every gx[i]/gy[i] is integrated each frame inside
+  // 5-link ghost chain — every gx[i]/gy[i] is integrated each frame inside
   // useCursorState's state-machine RAF (semi-implicit Euler against the prior
   // link). RadarFollower just renders them; no spring graph here.
   gx: MotionValue<number>[];
   gy: MotionValue<number>[];
   scene: SceneId;
   isMoving: boolean;
-  isHovering: boolean;
 }
 
 const STROKE = 1;
 const LABEL_OFFSET = 14;
 const R = RADAR_R;
 
-export default function RadarFollower({ rx, ry, gx, gy, scene, isMoving, isHovering }: Props) {
+export default function RadarFollower({ rx, ry, gx, gy, scene, isMoving }: Props) {
   return (
     <>
       {gx.map((sx, i) => (
@@ -40,7 +36,7 @@ export default function RadarFollower({ rx, ry, gx, gy, scene, isMoving, isHover
           opacity={GHOST_OPACITIES[i]}
         />
       ))}
-      <RadarHead rx={rx} ry={ry} scene={scene} isMoving={isMoving} isHovering={isHovering} />
+      <RadarHead rx={rx} ry={ry} scene={scene} isMoving={isMoving} />
     </>
   );
 }
@@ -95,8 +91,8 @@ function RadarGhost({ sx, sy, scale, opacity }: GhostProps) {
 }
 
 // -------------------------------------------------------------------------- //
-// RadarHead — small radar (R=38). Scan-line, service labels, and center      //
-// metrics fade in only while the cursor is moving.                           //
+// RadarHead — small radar (R=38). Scan-line and service labels fade in only   //
+// while the cursor is at rest (off while moving).                             //
 // -------------------------------------------------------------------------- //
 
 interface HeadProps {
@@ -104,20 +100,14 @@ interface HeadProps {
   ry: MotionValue<number>;
   scene: SceneId;
   isMoving: boolean;
-  isHovering: boolean;
 }
 
-function RadarHead({ rx, ry, scene, isMoving, isHovering }: HeadProps) {
-  const [metricIdx, setMetricIdx] = useState(0);
+function RadarHead({ rx, ry, scene, isMoving }: HeadProps) {
   const nodes = SERVICE_NODES[scene];
 
-  useEffect(() => {
-    if (isHovering || !isMoving) return;
-    const t = window.setInterval(() => {
-      setMetricIdx((i) => (i + 1) % METRICS_ROTATION.length);
-    }, METRICS_INTERVAL_MS);
-    return () => window.clearInterval(t);
-  }, [isHovering, isMoving]);
+  // Radar "activates" at REST — scan-line and labels fade in once the cursor
+  // stops, and switch off while it's in motion.
+  const atRest = !isMoving;
 
   type Anchor = 'middle' | 'end' | 'start';
   type Baseline = 'alphabetic' | 'middle' | 'hanging';
@@ -147,14 +137,17 @@ function RadarHead({ rx, ry, scene, isMoving, isHovering }: HeadProps) {
         width={R * 2 + 100}
         height={R * 2 + 48}
         viewBox={`${-(R + 50)} ${-(R + 24)} ${R * 2 + 100} ${R * 2 + 48}`}
-        style={{ overflow: 'visible', transform: 'translate(-50%, -50%)' }}
+        // Center via Motion's x/y (percentages) — Motion owns `transform` here
+        // because of the scale animation, so a raw `translate(-50%,-50%)` string
+        // would be clobbered and the head would render half-a-box down-right.
+        style={{ overflow: 'visible', x: '-50%', y: '-50%' }}
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 0.95, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Always-on: dot grid (low opacity at rest, brighter while moving) */}
+        {/* Always-on: dot grid (brighter at rest, dimmer while moving) */}
         <m.g
-          animate={{ opacity: isMoving ? 0.36 : 0.22 }}
+          animate={{ opacity: atRest ? 0.36 : 0.22 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {Array.from({ length: 7 }).map((_, gy) =>
@@ -176,9 +169,9 @@ function RadarHead({ rx, ry, scene, isMoving, isHovering }: HeadProps) {
           <rect key={i} x={x - 1.8} y={y - 1.8} width={3.6} height={3.6} fill="currentColor" />
         ))}
 
-        {/* Motion-gated: scan-line + sweep wedge */}
+        {/* Rest-gated: scan-line + sweep wedge */}
         <m.g
-          animate={{ opacity: isMoving ? 1 : 0 }}
+          animate={{ opacity: atRest ? 1 : 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
           style={{ transformOrigin: '0 0', animation: `cursor-radar-spin ${SCAN_LINE_PERIOD_MS}ms linear infinite` }}
         >
@@ -190,23 +183,9 @@ function RadarHead({ rx, ry, scene, isMoving, isHovering }: HeadProps) {
           />
         </m.g>
 
-        {/* Motion-gated: center metrics */}
-        <m.text
-          x={0}
-          y={2}
-          fill="currentColor"
-          fontFamily="JetBrains Mono, ui-monospace, monospace"
-          fontSize={7.5}
-          textAnchor="middle"
-          animate={{ opacity: isMoving ? 0.85 : 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-        >
-          {METRICS_ROTATION[metricIdx]}
-        </m.text>
-
-        {/* Motion-gated: service node labels */}
+        {/* Rest-gated: service node labels */}
         <m.g
-          animate={{ opacity: isMoving ? 0.95 : 0 }}
+          animate={{ opacity: atRest ? 0.95 : 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {nodes.map((label, i) => {

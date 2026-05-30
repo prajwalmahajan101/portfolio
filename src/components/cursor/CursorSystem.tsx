@@ -28,7 +28,6 @@ export default function CursorSystem() {
         gy={state.gy}
         scene={state.scene}
         isMoving={state.isMoving}
-        isHovering={!!state.hover}
       />
       <BlockCaret mx={state.mx} my={state.my} hover={!!state.hover} isDown={state.isDown} />
       <ContextHUD mx={state.mx} my={state.my} hover={state.hover} />

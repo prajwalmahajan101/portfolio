@@ -50,7 +50,7 @@ export interface CursorState {
   // crescent-offset radar target — head of the 9-link chain
   rx: MotionValue<number>;
   ry: MotionValue<number>;
-  // 8 ghost positions (g0..g7) integrated each frame in the state-machine RAF.
+  // 5 ghost positions (g0..g4) integrated each frame in the state-machine RAF.
   // gx[0] follows rx; gx[i] follows gx[i-1]. Each link uses the same
   // CHAIN_SPRING via semi-implicit Euler — see the chain block in `tick`.
   gx: MotionValue<number>[];
@@ -63,7 +63,7 @@ export interface CursorState {
   hover: CursorHoverTarget | null;
   // pressed
   isDown: boolean;
-  // gates the scan-line / labels / metrics on the head radar (true while moving)
+  // gates the scan-line / labels on the head radar (true while moving)
   isMoving: boolean;
   // mounted (gated on touch + reduced-motion)
   active: boolean;
@@ -75,7 +75,7 @@ export function useCursorState(): CursorState {
   const rx = useMotionValue(-9999);
   const ry = useMotionValue(-9999);
 
-  // 8-link spring chain — MotionValues (consumed by RadarFollower) plus the
+  // 5-link spring chain — MotionValues (consumed by RadarFollower) plus the
   // internal pos/vel arrays integrated each frame. Single lazy allocation:
   // cheaper than 16 useMotionValue calls and avoids a fixed-count hook loop.
   const chainRef = useRef<{
@@ -202,8 +202,8 @@ export function useCursorState(): CursorState {
     };
   }, [active, mx, my]);
 
-  // State-machine RAF — direction memory, idleness low-pass, velocity decay,
-  // crescent radar target, AND the 8-link ghost chain integration. Previously
+  // State-machine RAF — idleness low-pass, velocity decay, radar head (on the
+  // cursor), AND the 5-link ghost chain integration. Previously
   // the chain was built inside RadarFollower with chained useSpring; that
   // didn't propagate (links 4..7 stuck at the -9999 sentinel, links 1..3
   // non-monotonic) because Motion's useSpring doesn't reliably subscribe when
@@ -247,25 +247,31 @@ export function useCursorState(): CursorState {
       }
 
       // Per-frame velocity decay so a rapid drag that ends without a follow-up
-      // slow move still lets idleness rise (otherwise the crescent never
-      // re-forms because velocity stays pinned at its last sampled value).
+      // slow move still lets idleness rise (otherwise isMoving stays pinned
+      // true because velocity stays at its last sampled value).
       v.vx *= VELOCITY_DECAY;
       v.vy *= VELOCITY_DECAY;
       v.speed = Math.hypot(v.vx, v.vy);
 
-      // Idleness low-pass — smooths the crescent transition between
-      // cursor-inside-radar (motion) and cursor-just-outside-radar (rest).
+      // Idleness low-pass — drives the crescent magnitude and the isMoving
+      // hysteresis (scan-line / label fade) without flicker on brief pauses.
       const targetIdle = v.speed < IDLE_VELOCITY_THRESHOLD ? 1 : 0;
       idleness += (targetIdle - idleness) * IDLENESS_SMOOTHING;
 
-      // Crescent offset: cursor sits INSIDE radar at full motion (offset small,
-      // biased toward motion direction), and JUST OUTSIDE radar at rest
-      // (offset large, behind the last-motion direction).
+      // Crescent offset — ONE vector, applied identically to the head and every
+      // ghost below. Small while moving (cursor inside radar), large at rest
+      // (cursor on the ring edge). The chain integrates in cursor-space; this
+      // offset just slides the whole assembly as a rigid unit, so the head and
+      // all ghosts share the exact same displacement with no per-link lag.
       const offMag = CRESCENT_INSIDE + (CRESCENT_OUTSIDE - CRESCENT_INSIDE) * idleness;
-      const headX = cx - dir.x * offMag;
-      const headY = cy - dir.y * offMag;
-      rx.set(headX);
-      ry.set(headY);
+      const offX = -dir.x * offMag;
+      const offY = -dir.y * offMag;
+
+      // Chain anchor is the raw cursor; the crescent is added only at render.
+      const headX = cx;
+      const headY = cy;
+      rx.set(headX + offX);
+      ry.set(headY + offY);
 
       // ---- Chain integration ----
       // First frame after the cursor appears: collapse every link onto the
@@ -274,7 +280,7 @@ export function useCursorState(): CursorState {
         for (let i = 0; i < GHOST_COUNT; i++) {
           chain.pos[i].x = headX; chain.pos[i].y = headY;
           chain.vel[i].x = 0;     chain.vel[i].y = 0;
-          chain.gx[i].set(headX); chain.gy[i].set(headY);
+          chain.gx[i].set(headX + offX); chain.gy[i].set(headY + offY);
         }
         primed = true;
         lastTickTime = now;
@@ -296,8 +302,9 @@ export function useCursorState(): CursorState {
           const ay = (-k * (p.y - srcY) - c * vv.y) / m;
           vv.x += ax * dt; vv.y += ay * dt;
           p.x  += vv.x * dt; p.y  += vv.y * dt;
-          chain.gx[i].set(p.x);
-          chain.gy[i].set(p.y);
+          // Same crescent offset as the head — assembly slides as one unit.
+          chain.gx[i].set(p.x + offX);
+          chain.gy[i].set(p.y + offY);
         }
       }
 
