@@ -25,13 +25,14 @@ const LABEL_OFFSET = 14;
 const R = RADAR_R;
 
 export default function RadarFollower({ rx, ry, scene, isMoving, isHovering }: Props) {
-  // 9-link chain: head springs off the crescent target written by
-  // useCursorState; each ghost springs off the previous link. Every link
-  // shares CHAIN_SPRING so the whole cascade reads as one homogeneous trail
-  // — the head is just the first (largest, most-detailed) link.
-  const headX = useSpring(rx, CHAIN_SPRING);
-  const headY = useSpring(ry, CHAIN_SPRING);
-  const g0x = useSpring(headX, CHAIN_SPRING); const g0y = useSpring(headY, CHAIN_SPRING);
+  // 9-member position series: rx → g0 → g1 → … → g7. Every step in the chain
+  // uses the same CHAIN_SPRING. rx is the head's position directly (written
+  // each frame by useCursorState's crescent computation, already smoothed via
+  // its idleness low-pass + velocity decay) — there is no separate head
+  // spring on top, so the head sits exactly at the crescent target and shares
+  // the same MotionValue as the chain source. At rest every member converges
+  // to one point: rx == g0 == g1 == … == g7.
+  const g0x = useSpring(rx, CHAIN_SPRING); const g0y = useSpring(ry, CHAIN_SPRING);
   const g1x = useSpring(g0x, CHAIN_SPRING); const g1y = useSpring(g0y, CHAIN_SPRING);
   const g2x = useSpring(g1x, CHAIN_SPRING); const g2y = useSpring(g1y, CHAIN_SPRING);
   const g3x = useSpring(g2x, CHAIN_SPRING); const g3y = useSpring(g2y, CHAIN_SPRING);
@@ -54,7 +55,7 @@ export default function RadarFollower({ rx, ry, scene, isMoving, isHovering }: P
           opacity={GHOST_OPACITIES[i]}
         />
       ))}
-      <RadarHead headX={headX} headY={headY} scene={scene} isMoving={isMoving} isHovering={isHovering} />
+      <RadarHead rx={rx} ry={ry} scene={scene} isMoving={isMoving} isHovering={isHovering} />
     </>
   );
 }
@@ -114,14 +115,14 @@ function RadarGhost({ sx, sy, scale, opacity }: GhostProps) {
 // -------------------------------------------------------------------------- //
 
 interface HeadProps {
-  headX: MotionValue<number>;
-  headY: MotionValue<number>;
+  rx: MotionValue<number>;
+  ry: MotionValue<number>;
   scene: SceneId;
   isMoving: boolean;
   isHovering: boolean;
 }
 
-function RadarHead({ headX, headY, scene, isMoving, isHovering }: HeadProps) {
+function RadarHead({ rx, ry, scene, isMoving, isHovering }: HeadProps) {
   const [metricIdx, setMetricIdx] = useState(0);
   const nodes = SERVICE_NODES[scene];
 
@@ -146,8 +147,8 @@ function RadarHead({ headX, headY, scene, isMoving, isHovering }: HeadProps) {
     <m.div
       aria-hidden
       style={{
-        x: headX,
-        y: headY,
+        x: rx,
+        y: ry,
         position: 'fixed',
         top: 0,
         left: 0,
