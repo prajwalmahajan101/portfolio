@@ -7,6 +7,7 @@ import ScrollProgress from './components/ScrollProgress';
 import Loader from './components/Loader';
 import Marquee from './components/Marquee';
 import TerminalBackground from './components/TerminalBackground';
+import CursorSystem from './components/cursor/CursorSystem';
 import Hero from './sections/Hero';
 import About from './sections/About';
 import Architecture from './sections/Architecture';
@@ -44,6 +45,7 @@ export default function App() {
         <TooltipProvider delayDuration={200}>
           <Loader />
           <ScrollProgress />
+          <CursorSystem />
 
           {/* Phosphor terminal — fixed background, all CSS, no R3F */}
           <TerminalBackground />

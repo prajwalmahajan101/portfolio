@@ -47,6 +47,7 @@ export default function Contact() {
                     <a
                       href={`mailto:${profile.email}`}
                       data-cursor="hover"
+                      data-cursor-label="POST /messages · 200 OK"
                       aria-label={`Email ${profile.email} — opens your mail client with a fresh draft`}
                       className="group font-display text-2xl tracking-tight md:text-4xl"
                     >
@@ -93,6 +94,7 @@ export default function Contact() {
                       <a
                         href={`mailto:${profile.email}`}
                         data-cursor="hover"
+                        data-cursor-label="POST /messages · ready"
                         aria-label="Send email — opens a draft to prajwal directly"
                       >
                         <Mail className="h-4 w-4" /> Send email
@@ -113,6 +115,7 @@ export default function Contact() {
                         target="_blank"
                         rel="noreferrer"
                         data-cursor="hover"
+                        data-cursor-label="connect · linkedin"
                         aria-label="LinkedIn — recent work, endorsements, and timeline"
                       >
                         <Linkedin className="h-4 w-4" /> LinkedIn
@@ -133,6 +136,7 @@ export default function Contact() {
                         target="_blank"
                         rel="noreferrer"
                         data-cursor="hover"
+                        data-cursor-label="git remote · github"
                         aria-label="GitHub — source for this portfolio site and code samples"
                       >
                         <Github className="h-4 w-4" /> GitHub

@@ -79,6 +79,7 @@ export default function Hero() {
                     <a
                       href="#projects"
                       data-cursor="hover"
+                      data-cursor-label="route: /projects · 5 systems"
                       aria-label="See selected work — jump to five recent production systems"
                     >
                       See selected work

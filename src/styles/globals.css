@@ -172,10 +172,24 @@
   }
 }
 
-/* Block caret blink — reused by Cursor.tsx */
+/* Block caret blink — reused by CursorSystem block caret + Typewriter caret */
 @keyframes caret-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
+}
+
+/* Radar follower scan-line rotation */
+@keyframes cursor-radar-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* When the custom cursor system is mounted, hide the OS cursor.
+   On touch / reduced-motion / no-hover devices the class is never set,
+   so the native cursor remains intact. */
+html.cursor-active,
+html.cursor-active * {
+  cursor: none !important;
 }
 
 /* Terminal background keyframes */
