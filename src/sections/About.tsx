@@ -49,7 +49,7 @@ export default function About() {
                   hidden: { opacity: 0, y: 24 },
                   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
                 }}
-                className="hover-rise group relative flex min-h-[220px] flex-col justify-between gap-4 overflow-hidden border border-transparent bg-card p-7 hover:bg-card/70"
+                className="hover-rise group relative flex min-h-[220px] flex-col justify-between gap-4 overflow-hidden bg-card p-7 hover:bg-card/70"
               >
                 <span
                   aria-hidden
