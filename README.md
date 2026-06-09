@@ -1,6 +1,7 @@
 # Portfolio
 
 [![build](https://github.com/prajwalmahajan101/portfolio/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/prajwalmahajan101/portfolio/actions/workflows/build.yml)
+[![Vercel](https://img.shields.io/badge/Vercel-deployed-000000?logo=vercel&logoColor=white)](https://portfolio-prajwal-mahajan.vercel.app)
 
 Live: https://portfolio-prajwal-mahajan.vercel.app
 
