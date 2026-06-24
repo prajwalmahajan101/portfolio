@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "typecheck": "tsc --noEmit",
-    "resume:md": "node scripts/generate-resume-md.mjs"
+    "resume:md": "node scripts/generate-resume-md.mjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
@@ -29,6 +30,7 @@
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.42.2",
     "@rollup/plugin-yaml": "^5.0.0",
     "@types/node": "^22.7.5",
     "@types/react": "^18.3.12",
@@ -40,6 +42,7 @@
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
     "vite": "^6.0.0",
+    "wrangler": "^4.104.0",
     "yaml": "^2.9.0"
   }
 }
